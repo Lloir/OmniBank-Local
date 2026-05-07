@@ -1,4 +1,4 @@
-window.FormView = {
+﻿window.FormView = {
     categories: [],
     accounts: [],
     descriptions: [],
@@ -314,30 +314,35 @@ window.FormView = {
         const toAcc = document.getElementById('op_to_account').value;
         const isRecurrent = document.getElementById('op_is_recurrent').checked;
         
-        let type = 'Neutre';
+        let type = 'neutral';
+        let displayType = 'neutral';
         if (fromAcc && toAcc) {
-            type = 'Transfert interne';
+            type = 'transfer';
+            displayType = 'type_internal_transfer';
         } else if (!fromAcc && toAcc) {
-            type = 'Recettes';
+            type = 'income';
+            displayType = 'type_income';
         } else if (fromAcc && !toAcc) {
-            type = isRecurrent ? 'Dépenses fixes' : 'Dépenses variables';
+            type = isRecurrent ? 'expense_fixed' : 'expense_var';
+            displayType = isRecurrent ? 'type_expense_fixed' : 'type_expense_var';
         } else {
-            type = 'Neutre';
+            type = 'neutral';
+            displayType = 'type_neutral';
         }
         
         // Update hidden input and display badge
-        document.getElementById('op_tx_type').value = type === 'Transfert interne' ? 'Transfert' : type;
-        document.getElementById('op_inferred_type_display').textContent = type;
+        document.getElementById('op_tx_type').value = type;
+        document.getElementById('op_inferred_type_display').textContent = window.i18n.t(displayType);
         
         // Change badge color based on type
         const badge = document.getElementById('op_inferred_type_display');
-        if (type === 'Recettes') {
+        if (type === 'income') {
             badge.style.backgroundColor = '#10b981'; // Green
-        } else if (type === 'Transfert interne') {
+        } else if (type === 'transfer') {
             badge.style.backgroundColor = '#3b82f6'; // Blue
-        } else if (type === 'Dépenses variables') {
+        } else if (type === 'expense_var') {
             badge.style.backgroundColor = '#f59e0b'; // Orange
-        } else if (type === 'Dépenses fixes') {
+        } else if (type === 'expense_fixed') {
             badge.style.backgroundColor = '#ef4444'; // Red
         } else {
             badge.style.backgroundColor = 'var(--text-muted)';
@@ -356,9 +361,9 @@ window.FormView = {
         
         const currentVal = select.value;
         
-        let html = '<option value="">-- Sans catégorie --</option>';
+        let html = '<option value="">-- Sans cat\u00e9gorie --</option>';
         this.categories.forEach(c => {
-            if (!currentType || currentType === 'Neutre' || c.type === currentType) {
+            if (!currentType || currentType === 'neutral' || c.type === currentType) {
                 if (!search || c.name.toLowerCase().includes(search)) {
                     html += `<option value="${c.name}">${c.name}</option>`;
                 }
@@ -386,8 +391,8 @@ window.FormView = {
         const type = document.getElementById('op_tx_type').value;
         
         if (!name) return;
-        if (!type || type === 'Neutre') {
-            showInlineMessage("Info", 'Veuillez sélectionner des comptes (Depuis/Vers) pour définir un Type de transaction avant de créer une catégorie.');
+        if (!type || type === 'neutral') {
+            showInlineMessage("Info", 'Veuillez s\u00e9lectionner des comptes (Depuis/Vers) pour d\u00e9finir un Type de transaction avant de cr\u00e9er une cat\u00e9gorie.');
             return;
         }
 

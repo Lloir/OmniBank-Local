@@ -7,6 +7,22 @@ from app.models import Account, Transaction, GlobalConfig
 def init_db():
     Base.metadata.create_all(bind=engine)
 
+    # --- Idempotent migration: French type strings → universal technical keys ---
+    TYPE_MIGRATION = {
+        "Dépenses fixes": "expense_fixed",
+        "Dépenses variables": "expense_var",
+        "Recettes": "income",
+        "Transfert": "transfer",
+        "Neutre": "neutral",
+    }
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        for old_val, new_val in TYPE_MIGRATION.items():
+            conn.execute(text("UPDATE transactions SET type = :new WHERE type = :old"), {"new": new_val, "old": old_val})
+            conn.execute(text("UPDATE categories SET type = :new WHERE type = :old"), {"new": new_val, "old": old_val})
+            conn.execute(text("UPDATE recurrence_templates SET type = :new WHERE type = :old"), {"new": new_val, "old": old_val})
+        conn.commit()
+
 def wipe_db(db: Session):
     """Delete all data to start fresh."""
     db.query(Transaction).delete()

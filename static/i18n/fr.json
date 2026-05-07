@@ -37,5 +37,11 @@
     "config_opt_bimonthly": "Activer la récurrence bi-mensuelle",
     "config_opt_attachments": "Activer les documents joints (Upload de fichiers)",
     "config_opt_check_slips": "Activer la saisie des numéros de bordereaux de chèques",
-    "alert_restore_backup": "⚠️ ATTENTION : La restauration écrasera la base de données actuelle de manière irréversible. Êtes-vous sûr de vouloir continuer ?"
+    "alert_restore_backup": "⚠️ ATTENTION : La restauration écrasera la base de données actuelle de manière irréversible. Êtes-vous sûr de vouloir continuer ?",
+    "type_expense_fixed": "Dépenses fixes",
+    "type_expense_var": "Dépenses variables",
+    "type_income": "Recettes",
+    "type_transfer": "Transfert",
+    "type_neutral": "Neutre",
+    "type_internal_transfer": "Transfert interne"
 }

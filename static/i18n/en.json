@@ -37,5 +37,11 @@
     "config_opt_bimonthly": "Enable bi-monthly recurrence",
     "config_opt_attachments": "Enable attachments (File uploads)",
     "config_opt_check_slips": "Enable check slip numbers",
-    "alert_restore_backup": "⚠️ WARNING: Restoration will irreversibly overwrite the current database. Are you sure you want to continue?"
+    "alert_restore_backup": "⚠️ WARNING: Restoration will irreversibly overwrite the current database. Are you sure you want to continue?",
+    "type_expense_fixed": "Fixed Expenses",
+    "type_expense_var": "Variable Expenses",
+    "type_income": "Income",
+    "type_transfer": "Transfer",
+    "type_neutral": "Neutral",
+    "type_internal_transfer": "Internal Transfer"
 }

@@ -1,4 +1,4 @@
-// analytics.js — Synthèse Catégories × Mois (séparée par type) + totaux annuels
+﻿// analytics.js — Synthèse Catégories × Mois (séparée par type) + totaux annuels
 window.AnalyticsView = {
     data: null,
     months: null,
@@ -6,11 +6,11 @@ window.AnalyticsView = {
     selectedYear: new Date().getFullYear(),
 
     TYPE_CONFIG: {
-        'Dépenses variables': { emoji: '🛍️', color: '#f59e0b', sign: '-' },
-        'Dépenses fixes':     { emoji: '📋', color: '#ef4444', sign: '-' },
-        'Recettes':           { emoji: '💰', color: '#10b981', sign: '+' },
-        'Transfert':          { emoji: '🔁', color: '#6366f1', sign: '±' },
-        'Neutre':             { emoji: '⚪', color: '#6b7280', sign: '' },
+        'expense_var':   { emoji: '🛍️', color: '#f59e0b', sign: '-' },
+        'expense_fixed': { emoji: '📋', color: '#ef4444', sign: '-' },
+        'income':        { emoji: '💰', color: '#10b981', sign: '+' },
+        'transfer':      { emoji: '🔁', color: '#6366f1', sign: '±' },
+        'neutral':       { emoji: '⚪', color: '#6b7280', sign: '' },
     },
 
     render() {
@@ -125,8 +125,8 @@ window.AnalyticsView = {
         const cfg = this.TYPE_CONFIG[txType] || { emoji: '•', color: 'var(--text-muted)', sign: '' };
         const { categories, totals_per_cat, totals_per_month, grand_total, annual_by_cat, annual_totals_per_year } = typeData;
 
-        const isExpense = txType.startsWith('Dépenses');
-        const isIncome = txType === 'Recettes';
+        const isExpense = ['expense_fixed', 'expense_var'].includes(txType);
+        const isIncome = txType === 'income';
 
         // Max for heatmap
         let maxVal = 0;

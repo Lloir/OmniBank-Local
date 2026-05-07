@@ -4,10 +4,11 @@ from fastapi.responses import FileResponse
 import os
 
 from app.database import engine, Base
+from app.init_data import init_db
 import app.models # Important: load models before create_all
 
-# Create tables if they don't exist
-Base.metadata.create_all(bind=engine)
+# Create tables if they don't exist + run idempotent migrations
+init_db()
 
 app = FastAPI(title="OmniBank Local")
 

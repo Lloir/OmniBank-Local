@@ -174,7 +174,7 @@ def predict_next_paycheck(db: Session):
         
         # Find largest Recettes in this window
         largest_income = db.query(Transaction).filter(
-            Transaction.type == "Recettes",
+            Transaction.type == "income",
             Transaction.date_operation >= window_start,
             Transaction.date_operation <= window_end
         ).order_by(Transaction.amount.desc()).first()

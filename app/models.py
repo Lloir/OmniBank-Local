@@ -22,7 +22,7 @@ class Transaction(Base):
     
     amount = Column(Float) # Always positive/absolute value
     
-    type = Column(String) # "Dépenses fixes", "Recettes", "Dépenses variables", "Neutre"
+    type = Column(String) # "expense_fixed", "expense_var", "income", "transfer", "neutral"
     category = Column(String, nullable=True)
     
     reconciliation_date = Column(Date, nullable=True) # null if not reconciled
@@ -56,7 +56,7 @@ class Category(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
-    type = Column(String) # For grouping: Dépenses fixes, Dépenses variables, Recettes, Neutre
+    type = Column(String) # For grouping: expense_fixed, expense_var, income, neutral
 
 class RecurrenceTemplate(Base):
     __tablename__ = "recurrence_templates"

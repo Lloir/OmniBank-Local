@@ -156,10 +156,10 @@ window.BudgetsView = {
 
         // Group categories by type
         const groups = {
-            'Dépenses fixes': { title: 'Dépenses Fixes', cats: [] },
-            'Dépenses variables': { title: 'Dépenses Variables', cats: [] },
-            'Recettes': { title: 'Recettes', cats: [] },
-            'Neutre': { title: 'Neutres', cats: [] },
+            'expense_fixed': { title: window.i18n.t('type_expense_fixed'), cats: [] },
+            'expense_var': { title: window.i18n.t('type_expense_var'), cats: [] },
+            'income': { title: window.i18n.t('type_income'), cats: [] },
+            'neutral': { title: window.i18n.t('type_neutral'), cats: [] },
             'other': { title: 'Autres', cats: [] }
         };
 
@@ -169,7 +169,7 @@ window.BudgetsView = {
         }
 
         let html = '';
-        for (const key of ['Dépenses fixes', 'Dépenses variables', 'Recettes', 'Neutre', 'other']) {
+        for (const key of ['expense_fixed', 'expense_var', 'income', 'neutral', 'other']) {
             if (groups[key].cats.length === 0) continue;
             
             html += `<div style="margin-bottom:12px;">
@@ -450,7 +450,7 @@ window.BudgetsView = {
 
             graph.innerHTML =
                 barHtml(totalExp, null, '💸 Dépenses', `${formatCurrency(totalRecExp)} rapprochés / ${formatCurrency(totalExp)} engagés`, totalRecExp, recExpColor) +
-                (totalInc > 0 ? barHtml(totalInc, '#10b981', '↑ Recettes', formatCurrency(totalInc)) : '') +
+                (totalInc > 0 ? barHtml(totalInc, '#10b981', '↑ ' + window.i18n.t('type_income'), formatCurrency(totalInc)) : '') +
                 barHtml(target, 'rgba(99,102,241,0.6)', '🎯 Objectif', formatCurrency(target));
 
             // ── Transactions list ─────────────────────────────────────────

@@ -732,6 +732,10 @@ body.privacy-mode #valNextPayAmount:hover {
 /* Custom Vibrant Selection for Listboxes */
 select.inline-input {
     scrollbar-width: thin;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    padding-right: 30px;
 }
 
 select.inline-input option {

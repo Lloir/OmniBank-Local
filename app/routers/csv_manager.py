@@ -11,6 +11,16 @@ from app.routers.csv_parser import heuristic_parse, check_reconciliation
 
 router = APIRouter(prefix="/api/csv", tags=["csv"])
 
+# Bidirectional type translation for CSV compatibility
+TYPE_FR_TO_KEY = {
+    "Dépenses fixes": "expense_fixed",
+    "Dépenses variables": "expense_var",
+    "Recettes": "income",
+    "Transfert": "transfer",
+    "Neutre": "neutral",
+}
+TYPE_KEY_TO_FR = {v: k for k, v in TYPE_FR_TO_KEY.items()}
+
 @router.post("/import")
 async def import_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
     if not file.filename.endswith('.csv'):
@@ -150,7 +160,8 @@ async def import_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
             if cat_val == 'nan' or cat_val == '':
                 cat_val = None
 
-            tx_type = str(row['Type']).strip() if not pd.isna(row['Type']) else "Neutre"
+            tx_type = str(row['Type']).strip() if not pd.isna(row['Type']) else "neutral"
+            tx_type = TYPE_FR_TO_KEY.get(tx_type, tx_type)  # Convert FR→key if needed
 
             # Create Category if missing
             if cat_val and cat_val not in categories_db:
@@ -235,7 +246,7 @@ def export_csv(db: Session = Depends(get_db), cols: str = Query(None, descriptio
             "Date opération": tx.date_operation.strftime("%d/%m/%Y"),
             "Description": tx.description,
             "Montant": f"{tx.amount:.2f}".replace('.', ','),
-            "Type": tx.type,
+            "Type": TYPE_KEY_TO_FR.get(tx.type, tx.type),
             "Catégorie": tx.category or "",
             "Date de rapprochement": tx.reconciliation_date.strftime("%d/%m/%Y") if tx.reconciliation_date else "",
             "Répétition mensuelle": "VRAI" if tx.is_monthly else "FAUX",
@@ -424,20 +435,20 @@ async def save_batch(data: dict, db: Session = Depends(get_db)):
         from_acc = account_id if account_id and float(tx['amount']) < 0 else None
         to_acc = account_id if account_id and float(tx['amount']) >= 0 else None
         
-        tx_type = "Neutre"
+        tx_type = "neutral"
         cat_name = tx.get('category')
         if cat_name:
             cat_obj = db.query(Category).filter(Category.name == cat_name).first()
-            if cat_obj and cat_obj.type and cat_obj.type != "Neutre":
+            if cat_obj and cat_obj.type and cat_obj.type != "neutral":
                 tx_type = cat_obj.type
                 
-        if tx_type == "Neutre":
+        if tx_type == "neutral":
             if from_acc and to_acc:
-                tx_type = "Transfert"
+                tx_type = "transfer"
             elif not from_acc and to_acc:
-                tx_type = "Recettes"
+                tx_type = "income"
             elif from_acc and not to_acc:
-                tx_type = "Dépenses variables"
+                tx_type = "expense_var"
 
         new_tx = Transaction(
             date_operation=pd.to_datetime(tx['date_operation']).date(),

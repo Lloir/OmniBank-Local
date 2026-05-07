@@ -29,18 +29,31 @@ window.TimelineView = {
             </div>
             <div id="timelineHeader" class="view-header" style="position: sticky; top: -32px; z-index: 10; background-color: var(--bg-base); padding: 32px 0 15px 0; margin-top: -32px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <h2 style="margin:0;">🏠 <span data-i18n="nav_timeline">Dashboard</span></h2>
-                <div class="history-filters" style="display:flex; gap:8px; flex:1; max-width:600px; justify-content:flex-end; flex-wrap:wrap;">
+                <div class="history-filters" style="display:flex; gap:8px; flex:1; max-width:900px; justify-content:flex-end; flex-wrap:wrap;">
                     <input type="text" id="timelineSearch" class="inline-input" placeholder="Rechercher..." style="min-width:0; flex:1; max-width: 200px;" oninput="window.TimelineView.applyFilters()">
-                    <select id="timelineTypeFilter" class="inline-input" style="min-width:0; flex:1;" onchange="window.TimelineView.applyFilters()">
+                    <select id="timelineTypeFilter" class="inline-input" style="min-width:130px; flex:1;" onchange="window.TimelineView.applyFilters()">
                         <option value="">Tous les types</option>
-                        <option value="Dépenses fixes">Dépenses fixes</option>
-                        <option value="Dépenses variables">Dépenses variables</option>
-                        <option value="Recettes">Recettes</option>
-                        <option value="Transfert">Transfert</option>
+                        <option value="expense_fixed">Dépenses fixes</option>
+                        <option value="expense_var">Dépenses variables</option>
+                        <option value="income">Recettes</option>
+                        <option value="transfer">Transfert</option>
                     </select>
-                    <select id="timelineCategoryFilter" class="inline-input" style="min-width:0; flex:1;" onchange="window.TimelineView.applyFilters()">
+                    <select id="timelineCategoryFilter" class="inline-input" style="min-width:130px; flex:1;" onchange="window.TimelineView.applyFilters()">
                         <option value="">Toutes les catégories</option>
                     </select>
+                    <select id="timelineReconciledPeriod" class="inline-input" style="min-width:150px; flex:1;" onchange="window.TimelineView.savePeriod(); window.TimelineView.applyFilters()">
+                        <option value="current_month">Rapprochées : Mois en cours</option>
+                        <option value="5_days">Rapprochées : 5 derniers jours</option>
+                        <option value="15_days">Rapprochées : 15 derniers jours</option>
+                        <option value="30_days">Rapprochées : 30 derniers jours</option>
+                    </select>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:12px; font-weight:600; color:var(--text-muted); white-space:nowrap;">Non-rapproché avant paie</span>
+                        <label class="toggle-switch" style="flex-shrink: 0;" title="Filtre les dépenses non-rapprochées prévues avant la prochaine paie">
+                            <input type="checkbox" id="timelineUnreconciledFilter" onchange="window.TimelineView.applyFilters()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                     <div style="display:flex; align-items:center; gap:8px;">
                         <span style="font-size:12px; font-weight:600; color:var(--text-muted); white-space:nowrap;" data-i18n="filter_attachments">Pièces jointes</span>
                         <label class="toggle-switch" style="flex-shrink: 0;" title="Uniquement avec pièces jointes">
@@ -51,7 +64,7 @@ window.TimelineView = {
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <button class="btn btn-secondary" onclick="document.getElementById('timelineColsModal').style.display='flex'">⚙️ Colonnes</button>
-                    <button class="btn btn-secondary" onclick="window.ImportWizard.open()">📥 Importer (CSV/XLSX)</button>
+                    <button class="btn btn-secondary" onclick="window.ImportWizard.open()">📥 Importer un relevé</button>
                     <button class="btn btn-primary" onclick="window.TimelineView.showAddRow()">+ Ajouter</button>
                 </div>
             </div>
@@ -88,7 +101,22 @@ window.TimelineView = {
 
     async init() {
         this.applyColSettings();
+        
+        // Restore period filter
+        const savedPeriod = localStorage.getItem('timeline_period_filter');
+        if (savedPeriod) {
+            const select = document.getElementById('timelineReconciledPeriod');
+            if (select) select.value = savedPeriod;
+        }
+
         await this.loadData();
+    },
+
+    savePeriod() {
+        const select = document.getElementById('timelineReconciledPeriod');
+        if (select) {
+            localStorage.setItem('timeline_period_filter', select.value);
+        }
     },
 
     getColSettings() {
@@ -135,40 +163,8 @@ window.TimelineView = {
             // Get all operations and filter in JS
             const allTransactions = await API.get('/api/transactions/?limit=10000');
             
-            const now = new Date();
-            const currentYear = now.getFullYear();
-            const currentMonth = now.getMonth();
-            
-            let prevYear = currentYear;
-            let prevMonth = currentMonth - 1;
-            if (prevMonth < 0) {
-                prevMonth = 11;
-                prevYear -= 1;
-            }
-
-            // Filter for dashboard
-            this.transactions = allTransactions.filter(tx => {
-                // Get next pay date from app
-                const nextPayDate = window.app.nextPayDate ? new Date(window.app.nextPayDate) : null;
-                const txDate = new Date(tx.date_operation);
-
-                // Keep ALL non-reconciled operations, EXCEPT those AFTER nextPayDate
-                if (!tx.reconciliation_date) {
-                    if (nextPayDate && txDate > nextPayDate) {
-                        return false;
-                    }
-                    return true;
-                }
-                
-                // Keep reconciled operations ONLY if they are from current or previous month
-                const txYear = txDate.getFullYear();
-                const txM = txDate.getMonth();
-                
-                const isCurrentMonth = (txYear === currentYear && txM === currentMonth);
-                const isPrevMonth = (txYear === prevYear && txM === prevMonth);
-                
-                return isCurrentMonth || isPrevMonth;
-            });
+            // Keep all transactions, filtering will be done in renderTable
+            this.transactions = allTransactions;
 
             // Populate category filter
             const categories = [...new Set(this.transactions.map(t => t.category).filter(Boolean))].sort();
@@ -178,6 +174,15 @@ window.TimelineView = {
                 catSelect.innerHTML = '<option value="">Toutes les catégories</option>' + 
                     categories.map(c => `<option value="${c}">${c}</option>`).join('');
                 catSelect.value = currentVal;
+            }
+
+            if (this.pendingFilter) {
+                const pf = this.pendingFilter;
+                this.pendingFilter = null;
+                if (pf.unreconciledBeforeDate) {
+                    const check = document.getElementById('timelineUnreconciledFilter');
+                    if (check) check.checked = true;
+                }
             }
 
             // Load budgets map for the budget column
@@ -230,10 +235,63 @@ window.TimelineView = {
         if (tAttach) {
             filtered = filtered.filter(tx => !!tx.attachments);
         }
+        
+        const unrecFilter = document.getElementById('timelineUnreconciledFilter');
+        const unrecChecked = unrecFilter ? unrecFilter.checked : false;
+        
+        const periodFilter = document.getElementById('timelineReconciledPeriod');
+        const periodValue = periodFilter ? periodFilter.value : 'current_month';
+        
+        const now = new Date();
+        now.setHours(0,0,0,0);
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
+
+        if (unrecChecked && window.app.nextPayDate) {
+            const nextPayDate = new Date(window.app.nextPayDate);
+            filtered = filtered.filter(tx => {
+                if (tx.reconciliation_date) return false;
+                const txDate = new Date(tx.date_operation);
+                if (txDate > nextPayDate) return false;
+                if (!tx.from_account_id || tx.to_account_id) return false; // Basic proxy for expense
+                return true;
+            });
+        }
 
         // Split into unreconciled and reconciled
-        const unreconciled = filtered.filter(tx => !tx.reconciliation_date);
-        const reconciled = filtered.filter(tx => tx.reconciliation_date);
+        let unreconciled = filtered.filter(tx => !tx.reconciliation_date);
+        let reconciled = filtered.filter(tx => tx.reconciliation_date);
+        
+        // Hide unreconciled transactions strictly AFTER next pay date
+        const nextPayDate = window.app.nextPayDate ? new Date(window.app.nextPayDate) : null;
+        if (nextPayDate) {
+            unreconciled = unreconciled.filter(tx => {
+                const txDate = new Date(tx.date_operation);
+                return txDate <= nextPayDate;
+            });
+        }
+        
+        // Filter reconciled transactions based on the selected period
+        reconciled = reconciled.filter(tx => {
+            const txDate = new Date(tx.date_operation);
+            
+            if (periodValue === 'current_month') {
+                return txDate.getFullYear() === currentYear && txDate.getMonth() === currentMonth;
+            } else if (periodValue === '5_days') {
+                const diffTime = Math.abs(now - txDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays <= 5;
+            } else if (periodValue === '15_days') {
+                const diffTime = Math.abs(now - txDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays <= 15;
+            } else if (periodValue === '30_days') {
+                const diffTime = Math.abs(now - txDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays <= 30;
+            }
+            return true;
+        });
 
         // Sort Unreconciled: furthest future to closest (descending date)
         unreconciled.sort((a, b) => new Date(b.date_operation) - new Date(a.date_operation));
@@ -243,8 +301,8 @@ window.TimelineView = {
 
         const renderRow = (tx) => {
             const isReconciled = tx.reconciliation_date ? true : false;
-            const amountColor = tx.type === 'Recettes' ? 'var(--color-income)' : 
-                               (tx.type === 'Transfert' ? 'var(--color-transfer)' : 'inherit');
+            const amountColor = tx.type === 'income' ? 'var(--color-income)' : 
+                               (tx.type === 'transfer' ? 'var(--color-transfer)' : 'inherit');
             
             let rowClass = isReconciled ? 'reconciled-row' : '';
             

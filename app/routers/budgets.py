@@ -128,7 +128,7 @@ def get_budget_status(year: int = None, month: int = None, db: Session = Depends
         if b.is_project:
             txs = db.query(Transaction).filter(Transaction.budget_id == b.id).all()
             for tx in txs:
-                if tx.type == "Recettes":
+                if tx.type == "income":
                     income += abs(tx.amount)
                     if tx.reconciliation_date:
                         reconciled_income += abs(tx.amount)
@@ -138,12 +138,12 @@ def get_budget_status(year: int = None, month: int = None, db: Session = Depends
                         reconciled_expenses += abs(tx.amount)
         elif b.period == "indefinite":
             txs_all = db.query(Transaction).filter(
-                Transaction.type.in_(["Dépenses fixes", "Dépenses variables", "Recettes"]),
+                Transaction.type.in_(["expense_fixed", "expense_var", "income"]),
             ).all()
             for tx in txs_all:
                 if cats and (tx.category or "Sans catégorie") not in cats:
                     continue
-                if tx.type == "Recettes":
+                if tx.type == "income":
                     income += abs(tx.amount)
                     if tx.reconciliation_date:
                         reconciled_income += abs(tx.amount)
@@ -155,12 +155,12 @@ def get_budget_status(year: int = None, month: int = None, db: Session = Depends
             txs = db.query(Transaction).filter(
                 extract('year', Transaction.date_operation) == y,
                 extract('month', Transaction.date_operation) == m,
-                Transaction.type.in_(["Dépenses fixes", "Dépenses variables", "Recettes"]),
+                Transaction.type.in_(["expense_fixed", "expense_var", "income"]),
             ).all()
             for tx in txs:
                 if cats and (tx.category or "Sans catégorie") not in cats:
                     continue
-                if tx.type == "Recettes":
+                if tx.type == "income":
                     income += abs(tx.amount)
                     if tx.reconciliation_date:
                         reconciled_income += abs(tx.amount)
@@ -228,7 +228,7 @@ def get_budget_transactions(budget_id: int, year: int = None, month: int = None,
             .order_by(Transaction.date_operation.desc()).all()
     elif b.period == "indefinite":
         q = db.query(Transaction).filter(
-            Transaction.type.in_(["Dépenses fixes", "Dépenses variables", "Recettes"]),
+            Transaction.type.in_(["expense_fixed", "expense_var", "income"]),
         )
         if cats:
             q = q.filter(Transaction.category.in_(cats))
@@ -237,7 +237,7 @@ def get_budget_transactions(budget_id: int, year: int = None, month: int = None,
         q = db.query(Transaction).filter(
             extract('year', Transaction.date_operation) == y,
             extract('month', Transaction.date_operation) == m,
-            Transaction.type.in_(["Dépenses fixes", "Dépenses variables", "Recettes"]),
+            Transaction.type.in_(["expense_fixed", "expense_var", "income"]),
         )
         if cats:
             q = q.filter(Transaction.category.in_(cats))
@@ -250,7 +250,7 @@ def get_budget_transactions(budget_id: int, year: int = None, month: int = None,
         "amount": tx.amount,
         "type": tx.type,
         "category": tx.category,
-        "is_income": tx.type == "Recettes",
+        "is_income": tx.type == "income",
         "is_reconciled": tx.reconciliation_date is not None,
     } for tx in txs]
 
@@ -270,50 +270,59 @@ def ai_suggest_budgets(db: Session = Depends(get_db)):
     if not cfg.get("enabled"):
         raise HTTPException(status_code=400, detail="IA non activée dans les paramètres.")
 
+    # Get existing budgets to collect already assigned categories
+    existing_budgets = db.query(Budget).filter(Budget.is_closed == False).all()
+    already_used_cats = set()
+    for b in existing_budgets:
+        for c in db.query(BudgetCategory).filter(BudgetCategory.budget_id == b.id).all():
+            already_used_cats.add(c.category_name)
+
+    from dateutil.relativedelta import relativedelta
     today = date.today()
+    six_months_ago = today - relativedelta(months=6)
 
-    # Compute monthly averages over last 3 months
+    txs = db.query(Transaction).filter(
+        Transaction.date_operation >= six_months_ago,
+        Transaction.type.in_(["expense_fixed", "expense_var"]),
+    ).all()
+
     monthly_totals: dict[str, list[float]] = {}
-    for delta in range(1, 4):
-        m = today.month - delta
-        y = today.year
-        while m <= 0:
-            m += 12
-            y -= 1
+    category_descriptions: dict[str, dict[str, int]] = {}
 
-        txs = db.query(Transaction).filter(
-            extract('year', Transaction.date_operation) == y,
-            extract('month', Transaction.date_operation) == m,
-            Transaction.type.in_(["Dépenses fixes", "Dépenses variables"]),
-        ).all()
-
-        for tx in txs:
-            cat = tx.category or "Sans catégorie"
-            monthly_totals.setdefault(cat, []).append(tx.amount)
+    for tx in txs:
+        cat = tx.category or "Sans catégorie"
+        if cat in already_used_cats:
+            continue
+            
+        # Collect descriptions over 6 months
+        desc = (tx.description or "").strip()
+        if desc:
+            if cat not in category_descriptions:
+                category_descriptions[cat] = {}
+            category_descriptions[cat][desc] = category_descriptions[cat].get(desc, 0) + 1
+            
+        # Collect amounts over 6 months
+        monthly_totals.setdefault(cat, []).append(tx.amount)
 
     if not monthly_totals:
-        raise HTTPException(status_code=400, detail="Pas assez de données pour une suggestion.")
+        raise HTTPException(status_code=400, detail="Toutes vos dépenses sont déjà couvertes par vos enveloppes actuelles, ou aucune donnée suffisante.")
 
-    # Build averages
+    # Build averages and attach top descriptions
     averages = {cat: round(sum(vals) / len(vals), 2) for cat, vals in monthly_totals.items()}
-    avg_lines = "\n".join(f"- {cat}: {amt:.2f}€/mois" for cat, amt in sorted(averages.items(), key=lambda x: -x[1]))
+    avg_lines_arr = []
+    for cat, amt in sorted(averages.items(), key=lambda x: -x[1]):
+        desc_counts = category_descriptions.get(cat, {})
+        top_descs = [d for d, c in sorted(desc_counts.items(), key=lambda x: -x[1])[:5]]
+        desc_str = f" (Exemples d'achats : {', '.join(top_descs)})" if top_descs else ""
+        avg_lines_arr.append(f"- {cat}: {amt:.2f}€/mois{desc_str}")
+        
+    avg_lines = "\n".join(avg_lines_arr)
 
-    # Get existing budgets to prevent duplicates
-    existing_budgets = db.query(Budget).filter(Budget.is_closed == False).all()
-    existing_info = []
-    for b in existing_budgets:
-        cats = [c.category_name for c in db.query(BudgetCategory).filter(BudgetCategory.budget_id == b.id).all()]
-        cat_str = ", ".join(cats) if cats else "Toutes dépenses"
-        existing_info.append(f"- {b.name} (Catégories: {cat_str})")
-    
-    existing_lines = "\n".join(existing_info)
-    existing_prompt = f"\nVoici les enveloppes DÉJÀ EXISTANTES de l'utilisateur. NE PROPOSE PAS de nouvelles enveloppes pour ces catégories :\n{existing_lines}\n" if existing_info else ""
-
-    prompt = f"""Tu es un conseiller financier expert. Voici les dépenses moyennes mensuelles de l'utilisateur sur les 3 derniers mois, par catégorie :
+    prompt = f"""Tu es un conseiller financier expert. Voici les dépenses moyennes mensuelles de l'utilisateur sur les 6 derniers mois, UNIQUEMENT pour les catégories qui ne sont PAS encore dans un budget :
 
 {avg_lines}
-{existing_prompt}
-Propose de NOUVELLES enveloppes budgétaires logiques (au maximum 3 ou 4) pour les dépenses qui ne sont pas encore couvertes par les enveloppes existantes. Regroupe les catégories similaires si pertinent.
+
+Propose de NOUVELLES enveloppes budgétaires logiques (au maximum 3 ou 4) pour couvrir ces dépenses. Regroupe les catégories similaires si pertinent. Ne réutilise JAMAIS la même catégorie dans deux enveloppes différentes.
 Pour chaque enveloppe, réponds UNIQUEMENT en JSON valide, un objet par ligne, avec ce format exact :
 {{"name": "Nom de l'enveloppe", "categories": ["Cat1", "Cat2"], "suggested_amount": 250.00, "reason": "Explication courte"}}
 
@@ -322,19 +331,26 @@ Ne réponds rien d'autre que les lignes JSON. Pas de markdown, pas de texte auto
     raw = call_ollama_sync(prompt, cfg)
 
     proposals = []
+    used_in_proposals = set()
+
     for line in raw.strip().splitlines():
         line = line.strip()
         if line.startswith("{"):
             try:
                 obj = json.loads(line)
-                # Validate required fields
                 if "name" in obj and "suggested_amount" in obj:
-                    proposals.append({
-                        "name": obj["name"],
-                        "categories": obj.get("categories", []),
-                        "suggested_amount": float(obj["suggested_amount"]),
-                        "reason": obj.get("reason", ""),
-                    })
+                    cats = obj.get("categories", [])
+                    # Deduplicate: keep only categories not yet assigned in this batch
+                    clean_cats = [c for c in cats if c not in used_in_proposals and c in averages]
+                    
+                    if clean_cats: # Only add proposal if it still has valid categories
+                        used_in_proposals.update(clean_cats)
+                        proposals.append({
+                            "name": obj["name"],
+                            "categories": clean_cats,
+                            "suggested_amount": float(obj["suggested_amount"]),
+                            "reason": obj.get("reason", ""),
+                        })
             except Exception:
                 pass
 

@@ -119,6 +119,17 @@ class App {
         this.loadView(savedView);
     }
 
+    showUnreconciledBeforePay() {
+        if (!window.app.nextPayDate) return;
+        
+        if (window.TimelineView) {
+            window.TimelineView.pendingFilter = {
+                unreconciledBeforeDate: window.app.nextPayDate
+            };
+        }
+        this.loadView('dashboard');
+    }
+
     async refreshSidebar() {
         try {
             const accounts = await API.get('/api/stats/accounts');

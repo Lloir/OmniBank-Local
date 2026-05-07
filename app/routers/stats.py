@@ -175,14 +175,14 @@ def get_categories_by_month(months: int = 12, reconciled: str = "all", year: int
     txs = query.all()
 
     # Group: {type: {category: {month_key: amount}}}
-    TYPE_ORDER = ["D\u00e9penses variables", "D\u00e9penses fixes", "Recettes", "Transfert", "Neutre"]
+    TYPE_ORDER = ["expense_var", "expense_fixed", "income", "transfer", "neutral"]
     grouped = {t: {} for t in TYPE_ORDER}
 
     for tx in txs:
         mk = tx.date_operation.strftime("%Y-%m")
         if mk not in month_keys:
             continue
-        tx_type = tx.type or "Neutre"
+        tx_type = tx.type or "neutral"
         if tx_type not in grouped:
             grouped[tx_type] = {}
         cat = tx.category or "Sans cat\u00e9gorie"
@@ -229,7 +229,7 @@ def get_categories_by_month(months: int = 12, reconciled: str = "all", year: int
         if not tx.date_operation:
             continue
         yr = str(tx.date_operation.year)
-        tx_type = tx.type or "Neutre"
+        tx_type = tx.type or "neutral"
         cat = tx.category or "Sans cat\u00e9gorie"
         if tx_type not in annual:
             annual[tx_type] = {}

@@ -93,9 +93,9 @@
                 </div>
                 
                 <div class="sidebar-stats">
-                    <div class="stat-box" style="border-color: rgba(255, 152, 0, 0.3); background-color: rgba(255, 152, 0, 0.05);" id="unreconciledBox">
+                    <div class="stat-box" style="border-color: rgba(255, 152, 0, 0.3); background-color: rgba(255, 152, 0, 0.05); cursor: pointer;" id="unreconciledBox" onclick="window.app.showUnreconciledBeforePay()">
                         <span class="stat-label" style="color: var(--text-main); font-weight: 600; font-size: 11px; margin-bottom: 6px; display: block; text-transform: uppercase;">Dépenses non rapprochées avant paie</span>
-                        <span class="stat-value" id="valUnreconciled" style="color: #ff9800;">0.00 €</span>
+                        <span class="stat-value privacy-blur" id="valUnreconciled" style="color: #ff9800;">0.00 €</span>
                     </div>
                     <div class="stat-box highlight">
                         <span class="stat-label" data-i18n="stat_rest_to_live">Reste à vivre</span>
@@ -132,8 +132,8 @@
                             <div id="sidebarBudgetBar" style="position:absolute;top:0;left:0;width:0%;height:100%;background:#10b981;border-radius:999px;transition:width 0.3s;"></div>
                         </div>
                         <div style="display: flex; justify-content: space-between; font-size: 12px;">
-                            <span id="sidebarBudgetSpent" style="color: var(--text-main); font-weight: 600;">0,00 €</span>
-                            <span id="sidebarBudgetTarget" style="color: var(--text-muted);">/ 0,00 €</span>
+                            <span id="sidebarBudgetSpent" class="privacy-blur" style="color: var(--text-main); font-weight: 600;">0,00 €</span>
+                            <span id="sidebarBudgetTarget" class="privacy-blur" style="color: var(--text-muted);">/ 0,00 €</span>
                         </div>
                     </div>
                 </div>
@@ -264,7 +264,7 @@
         <div class="modal" style="width: 600px; max-width: 95vw; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); padding: 30px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
                 <h3 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">Saisie d'opération</h3>
-                <div id="op_inferred_type_display" style="background-color: var(--accent); color: white; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Neutre</div>
+                <div id="op_inferred_type_display" style="background-color: var(--accent); color: white; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">neutral</div>
             </div>
             
             <div class="op-modal-grid" style="display: flex; flex-direction: column; gap: 24px;">
@@ -318,7 +318,7 @@
                     <select id="op_category" class="inline-input" size="5" style="width: 100%; border-radius: 8px; padding: 6px; font-size: 13px;">
                         <option value="">-- Sans catégorie --</option>
                     </select>
-                    <input type="hidden" id="op_tx_type" value="Neutre">
+                    <input type="hidden" id="op_tx_type" value="neutral">
                 </div>
 
                 <!-- Inline New Category Form -->

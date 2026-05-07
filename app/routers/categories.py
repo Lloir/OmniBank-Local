@@ -30,7 +30,7 @@ def get_categories_averages(db: Session = Depends(get_db)):
     ).filter(
         Transaction.date_operation >= last_year_start,
         Transaction.category != None,
-        Transaction.type != "Recettes"
+        Transaction.type != "income"
     ).group_by(Transaction.category).all()
     
     # Calculate current month sum
@@ -40,7 +40,7 @@ def get_categories_averages(db: Session = Depends(get_db)):
     ).filter(
         Transaction.date_operation >= current_month_start,
         Transaction.category != None,
-        Transaction.type != "Recettes"
+        Transaction.type != "income"
     ).group_by(Transaction.category).all()
 
     # Aggregate incomes as well
@@ -50,7 +50,7 @@ def get_categories_averages(db: Session = Depends(get_db)):
     ).filter(
         Transaction.date_operation >= last_year_start,
         Transaction.category != None,
-        Transaction.type == "Recettes"
+        Transaction.type == "income"
     ).group_by(Transaction.category).all()
 
     monthly_income = db.query(
@@ -59,7 +59,7 @@ def get_categories_averages(db: Session = Depends(get_db)):
     ).filter(
         Transaction.date_operation >= current_month_start,
         Transaction.category != None,
-        Transaction.type == "Recettes"
+        Transaction.type == "income"
     ).group_by(Transaction.category).all()
 
     averages = {}

@@ -3,40 +3,88 @@ window.AllOperationsView = {
     accounts: {},
     pendingFilter: null,  // {category, monthKey} set by AnalyticsView before navigation
 
+    budgetsMap: {}, // added for column matching
+
     render() {
         return `
+            <style id="historyColsStyle"></style>
+            <div id="historyColsModal" class="modal-overlay" style="display: none; z-index: 100;">
+                <div class="modal-content" style="max-width: 300px;">
+                    <h3>⚙️ Colonnes</h3>
+                    <div style="display:flex; flex-direction:column; gap:10px; margin: 20px 0;">
+                        <label><input type="checkbox" id="chk_history_col_dateSaisie" onchange="window.AllOperationsView.toggleCol('dateSaisie')"> Date Saisie</label>
+                        <label><input type="checkbox" id="chk_history_col_date" onchange="window.AllOperationsView.toggleCol('date')"> Date Op.</label>
+                        <label><input type="checkbox" id="chk_history_col_desc" onchange="window.AllOperationsView.toggleCol('desc')"> Description</label>
+                        <label><input type="checkbox" id="chk_history_col_type" onchange="window.AllOperationsView.toggleCol('type')"> Type</label>
+                        <label><input type="checkbox" id="chk_history_col_cat" onchange="window.AllOperationsView.toggleCol('cat')"> Catégorie</label>
+                        <label><input type="checkbox" id="chk_history_col_amount" onchange="window.AllOperationsView.toggleCol('amount')"> Montant</label>
+                        <label><input type="checkbox" id="chk_history_col_recon" onchange="window.AllOperationsView.toggleCol('recon')"> Rapproché</label>
+                        <label><input type="checkbox" id="chk_history_col_budget" onchange="window.AllOperationsView.toggleCol('budget')"> Enveloppe</label>
+                        <label><input type="checkbox" id="chk_history_col_depuis" onchange="window.AllOperationsView.toggleCol('depuis')"> Depuis</label>
+                        <label><input type="checkbox" id="chk_history_col_vers" onchange="window.AllOperationsView.toggleCol('vers')"> Vers</label>
+                        <label><input type="checkbox" id="chk_history_col_recurrence" onchange="window.AllOperationsView.toggleCol('recurrence')"> Répétition</label>
+                        <label><input type="checkbox" id="chk_history_col_slip" onchange="window.AllOperationsView.toggleCol('slip')"> N° Bordereau</label>
+                        <label><input type="checkbox" id="chk_history_col_attachments" onchange="window.AllOperationsView.toggleCol('attachments')"> P. Jointes</label>
+                    </div>
+                    <div style="text-align: right;">
+                        <button class="btn btn-primary" onclick="document.getElementById('historyColsModal').style.display='none'">Fermer</button>
+                    </div>
+                </div>
+            </div>
             <div id="historyHeader" class="view-header" style="position: sticky; top: -32px; z-index: 10; background-color: var(--bg-base); padding: 32px 0 15px 0; margin-top: -32px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <h2 style="margin:0;">📋 <span data-i18n="nav_history">Historique</span></h2>
-                <div class="history-filters" style="display:flex; gap:8px; flex:1; max-width:700px; justify-content:flex-end; flex-wrap: wrap;">
+                <div class="history-filters" style="display:flex; gap:8px; flex:1; max-width:900px; justify-content:flex-end; flex-wrap:wrap;">
                     <input type="text" id="historySearch" class="inline-input" placeholder="Rechercher..." style="min-width:0; flex:1; max-width: 180px;" oninput="window.AllOperationsView.applyFilters()">
                     <input type="month" id="historyMonthFilter" class="inline-input" style="min-width:0; flex:1;" onchange="window.AllOperationsView.applyFilters()" title="Filtrer par mois">
-                    <select id="historyTypeFilter" class="inline-input" style="min-width:0; flex:1;" onchange="window.AllOperationsView.applyFilters()">
+                    <select id="historyTypeFilter" class="inline-input" style="min-width:130px; flex:1;" onchange="window.AllOperationsView.applyFilters()">
                         <option value="">Tous les types</option>
-                        <option value="Dépenses fixes">Dépenses fixes</option>
-                        <option value="Dépenses variables">Dépenses variables</option>
-                        <option value="Recettes">Recettes</option>
-                        <option value="Transfert">Transfert</option>
+                        <option value="expense_fixed">Dépenses fixes</option>
+                        <option value="expense_var">Dépenses variables</option>
+                        <option value="income">Recettes</option>
+                        <option value="transfer">Transfert</option>
                     </select>
-                    <select id="historyCategoryFilter" class="inline-input" style="min-width:0; flex:1;" onchange="window.AllOperationsView.applyFilters()">
+                    <select id="historyCategoryFilter" class="inline-input" style="min-width:130px; flex:1;" onchange="window.AllOperationsView.applyFilters()">
                         <option value="">Toutes les catégories</option>
                     </select>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:12px; font-weight:600; color:var(--text-muted); white-space:nowrap;">Non-rapproché avant paie</span>
+                        <label class="toggle-switch" style="flex-shrink: 0;" title="Filtre les dépenses non-rapprochées prévues avant la prochaine paie">
+                            <input type="checkbox" id="historyUnreconciledFilter" onchange="window.AllOperationsView.applyFilters()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:12px; font-weight:600; color:var(--text-muted); white-space:nowrap;" data-i18n="filter_attachments">Pièces jointes</span>
+                        <label class="toggle-switch" style="flex-shrink: 0;" title="Uniquement avec pièces jointes">
+                            <input type="checkbox" id="historyAttachmentFilter" onchange="window.AllOperationsView.applyFilters()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
-                <button class="btn btn-primary" onclick="window.TimelineView.showAddRow()">+ Ajouter</button>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-secondary" onclick="document.getElementById('historyColsModal').style.display='flex'">⚙️ Colonnes</button>
+                    <button class="btn btn-secondary" onclick="window.ImportWizard.open()">📥 Importer un relevé</button>
+                    <button class="btn btn-primary" onclick="window.TimelineView.showAddRow()">+ Ajouter</button>
+                </div>
             </div>
             <div style="padding-bottom: 20px;">
-                <table class="data-table mobile-card-table">
+                <table class="data-table timeline-table mobile-card-table">
                     <thead>
                         <tr>
-                            <th style="min-width: 90px;">Date Saisie</th>
-                            <th style="min-width: 90px;">Date Op.</th>
-                            <th style="min-width: 150px;">Description</th>
-                            <th style="min-width: 80px;">Montant</th>
-                            <th style="min-width: 120px;">Type</th>
-                            <th style="min-width: 120px; white-space: nowrap;">Catégorie</th>
-                            <th style="min-width: 100px;">Rapproché le</th>
-                            <th style="min-width: 120px;">Depuis</th>
-                            <th style="min-width: 120px;">Vers</th>
-                            <th style="min-width: 100px;">Actions</th>
+                            <th class="col-dateSaisie" style="width: 100px;">Date Saisie</th>
+                            <th class="col-date" style="width: 100px;">Date Op.</th>
+                            <th class="col-desc">Description</th>
+                            <th class="col-type" style="width: 120px;">Type</th>
+                            <th class="col-cat" style="width: 160px; white-space: nowrap;">Catégorie</th>
+                            <th class="col-amount" style="width: 100px;">Montant</th>
+                            <th class="col-recon" style="width: 120px;">Rapproché</th>
+                            <th class="col-budget" style="width: 110px;">Enveloppe</th>
+                            <th class="col-depuis" style="width: 120px;">Depuis</th>
+                            <th class="col-vers" style="width: 120px;">Vers</th>
+                            <th class="col-recurrence" style="width: 100px;">Répétition</th>
+                            <th class="col-slip" style="width: 120px;">N° Bordereau</th>
+                            <th class="col-attachments" style="width: 100px;">P. Jointes</th>
+                            <th class="col-actions" style="width: 50px;"></th>
                         </tr>
                     </thead>
                     <tbody id="allOperationsBody">
@@ -48,11 +96,58 @@ window.AllOperationsView = {
     },
 
     async init() {
+        this.applyColSettings();
         await this.loadData();
+    },
+
+    getColSettings() {
+        const def = { dateSaisie: false, date: true, desc: true, type: false, cat: true, amount: true, recon: true, budget: false, depuis: false, vers: false, recurrence: false, slip: false, attachments: false };
+        try {
+            const saved = localStorage.getItem('history_cols');
+            return saved ? { ...def, ...JSON.parse(saved) } : def;
+        } catch { return def; }
+    },
+
+    toggleCol(col) {
+        const settings = this.getColSettings();
+        const chk = document.getElementById('chk_history_col_' + col);
+        if (chk) {
+            settings[col] = chk.checked;
+            localStorage.setItem('history_cols', JSON.stringify(settings));
+            this.applyColSettings();
+        }
+    },
+
+    applyColSettings() {
+        const cols = this.getColSettings();
+        
+        // Update checkboxes
+        Object.keys(cols).forEach(k => {
+            const el = document.getElementById('chk_history_col_' + k);
+            if (el) el.checked = cols[k];
+        });
+        
+        // Inject CSS using classes
+        let css = '';
+        Object.keys(cols).forEach(k => {
+            if (!cols[k]) {
+                css += `.timeline-table .col-${k} { display: none !important; }\n`;
+            }
+        });
+        
+        const styleTag = document.getElementById('historyColsStyle');
+        if (styleTag) styleTag.innerHTML = css;
     },
 
     async loadData() {
         try {
+            // Load budgets map for the budget column
+            try {
+                const budgets = await API.get('/api/budgets/');
+                this.budgetsMap = {};
+                budgets.forEach(b => { this.budgetsMap[b.id] = b.name; });
+            } catch(e) { this.budgetsMap = {}; }
+
             // Load accounts to map IDs to names
             const accs = await API.get('/api/accounts/');
             this.accounts = {};
@@ -117,6 +212,16 @@ window.AllOperationsView = {
         const tType = typeFilter ? typeFilter.value : '';
         const tCat = catFilter ? catFilter.value : '';
 
+        // Month filter (YYYY-MM)
+        const monthInput = document.getElementById('historyMonthFilter');
+        const tMonth = monthInput ? monthInput.value : '';
+        
+        const attachFilter = document.getElementById('historyAttachmentFilter');
+        const tAttach = attachFilter ? attachFilter.checked : false;
+        
+        const unrecFilter = document.getElementById('historyUnreconciledFilter');
+        const unrecChecked = unrecFilter ? unrecFilter.checked : false;
+
         // Apply filters
         let filtered = this.transactions;
         if (q) {
@@ -135,9 +240,19 @@ window.AllOperationsView = {
         if (tCat) {
             filtered = filtered.filter(tx => tx.category === tCat);
         }
-        // Month filter (YYYY-MM)
-        const monthInput = document.getElementById('historyMonthFilter');
-        const tMonth = monthInput ? monthInput.value : '';
+        if (tAttach) {
+            filtered = filtered.filter(tx => !!tx.attachments);
+        }
+        if (unrecChecked && window.app.nextPayDate) {
+            const nextPayDate = new Date(window.app.nextPayDate);
+            filtered = filtered.filter(tx => {
+                if (tx.reconciliation_date) return false;
+                const txDate = new Date(tx.date_operation);
+                if (txDate > nextPayDate) return false;
+                if (!tx.from_account_id || tx.to_account_id) return false; // Basic proxy for expense
+                return true;
+            });
+        }
         if (tMonth) {
             filtered = filtered.filter(tx => tx.date_operation && tx.date_operation.startsWith(tMonth));
         }
@@ -157,8 +272,8 @@ window.AllOperationsView = {
                 }
             }
 
-            const amountColor = tx.type === 'Recettes' ? 'var(--color-income)' : 
-                               (tx.type === 'Transfert' ? 'var(--color-transfer)' : 'inherit');
+            const amountColor = tx.type === 'income' ? 'var(--color-income)' : 
+                               (tx.type === 'transfer' ? 'var(--color-transfer)' : 'inherit');
             
             const isReconciled = tx.reconciliation_date ? true : false;
             let rowClass = isReconciled ? 'reconciled-row' : '';
@@ -174,19 +289,23 @@ window.AllOperationsView = {
 
             return `
             <tr data-id="${tx.id}" class="${rowClass}" ${idAttr}>
-                <td data-label="Date Saisie">${formatDate(tx.date_saisie)}</td>
-                <td data-label="Date Op.">${formatDate(tx.date_operation)}</td>
-                <td data-label="Description"><strong>${tx.description}</strong></td>
-                <td data-label="Montant">
+                <td class="col-dateSaisie" data-label="Date Saisie">${formatDate(tx.date_saisie)}</td>
+                <td class="col-date" data-label="Date Op.">${formatDate(tx.date_operation)}</td>
+                <td class="col-desc" data-label="Description"><strong>${tx.description}</strong></td>
+                <td class="col-type" data-label="Type">${tx.type}</td>
+                <td class="col-cat" data-label="Catégorie" style="white-space: nowrap;"><span style="background: var(--bg-base); padding: 2px 6px; border-radius: 4px; font-size: 11px;">${tx.category || '-'}</span></td>
+                <td class="col-amount" data-label="Montant">
                     <span class="privacy-blur" style="color: ${amountColor}; font-weight: bold;">${formatCurrency(tx.amount)}</span>
                 </td>
-                <td data-label="Type">${tx.type}</td>
-                <td data-label="Catégorie" style="white-space: nowrap;"><span style="background: var(--bg-base); padding: 2px 6px; border-radius: 4px; font-size: 11px;">${tx.category || '-'}</span></td>
-                <td data-label="Rapproché le">${formatDate(tx.reconciliation_date) || '-'}</td>
-                <td data-label="Depuis">${depuis}</td>
-                <td data-label="Vers">${vers}</td>
-                <td data-label="Actions" class="mobile-card-actions">
-                    <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="window.AllOperationsView.edit(${tx.id})">✏️ Éditer</button>
+                <td class="col-recon" data-label="Rapproché">${formatDate(tx.reconciliation_date) || '-'}</td>
+                <td class="col-budget" data-label="Enveloppe">${tx.budget_id && this.budgetsMap[tx.budget_id] ? `<span onclick="window.app.loadView('budgets')" style="background:rgba(99,102,241,0.15);color:#818cf8;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap;cursor:pointer;" title="Voir l'enveloppe">🗂️ ${this.budgetsMap[tx.budget_id]}</span>` : '<span style="color:var(--text-muted);font-size:11px;">—</span>'}</td>
+                <td class="col-depuis" data-label="Depuis">${depuis}</td>
+                <td class="col-vers" data-label="Vers">${vers}</td>
+                <td class="col-recurrence" data-label="Répétition">${isRecurrent ? '🔄' : '-'}</td>
+                <td class="col-slip" data-label="N° Bordereau">${tx.slip_number ? '<span style="background: rgba(255,152,0,0.15); color: #ff9800; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">' + tx.slip_number + '</span>' : '-'}</td>
+                <td class="col-attachments" data-label="P. Jointes">${tx.attachments ? `<span style="cursor:pointer;" title="${tx.attachments}">📎</span>` : '-'}</td>
+                <td class="col-actions mobile-card-actions">
+                    <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="window.AllOperationsView.edit(${tx.id})">✏️</button>
                     <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="window.AllOperationsView.delete(${tx.id})">X</button>
                 </td>
             </tr>

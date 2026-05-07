@@ -1,4 +1,4 @@
-window.CategoriesView = {
+﻿window.CategoriesView = {
     categories: [],
     
     render() {
@@ -12,10 +12,10 @@ window.CategoriesView = {
                 <div class="categories-add-form" style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
                     <input type="text" id="cat_name" class="inline-input" placeholder="Nom de la catégorie" style="border:1px solid var(--border-color); padding: 5px;">
                     <select id="cat_type" style="background: var(--bg-base); color: var(--text-main); border: 1px solid var(--border-color); padding: 5px;">
-                        <option value="Dépenses fixes">Dépenses fixes</option>
-                        <option value="Dépenses variables">Dépenses variables</option>
-                        <option value="Recettes">Recettes</option>
-                        <option value="Neutre">Neutre</option>
+                        <option value="expense_fixed">Dépenses fixes</option>
+                        <option value="expense_var">Dépenses variables</option>
+                        <option value="income">Recettes</option>
+                        <option value="neutral">Neutre</option>
                     </select>
                     <button class="btn btn-secondary" onclick="window.CategoriesView.addCategory()">Ajouter</button>
                 </div>
