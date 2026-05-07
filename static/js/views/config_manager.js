@@ -1,0 +1,320 @@
+window.ConfigView = {
+    configData: {},
+    models: [],
+
+    render() {
+        return `
+            <div class="view-header" style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                <h2>⚙️ <span data-i18n="nav_configuration">Configuration</span></h2>
+            </div>
+            
+            <div style="margin-bottom: 20px; background: var(--bg-surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 15px;">
+                    <h3 style="display:flex; align-items:center; gap:8px; margin:0;">🤖 Configuration Ollama (Assistant IA)</h3>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 500;">
+                        <div style="position: relative; width: 40px; height: 24px;">
+                            <input type="checkbox" id="conf_enable_ai" class="global-toggle" style="opacity: 0; width: 0; height: 0; position: absolute;" onchange="window.ConfigView.toggleAI(this.checked); window.ConfigView.save();">
+                            <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .4s; border-radius: 34px;"></span>
+                            <span class="slider-knob" style="position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+                        </div>
+                        Activer l'IA
+                    </label>
+                </div>
+                
+                <div id="ollamaSettings">
+                    <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 15px;">
+                        Renseignez l'URL de votre serveur Ollama local (ex: http://localhost:11434 ou http://192.168.1.50:11434).
+                    </p>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">URL Ollama</label>
+                        <input type="text" id="conf_ollama_url" class="inline-input" placeholder="http://127.0.0.1:11434" style="border: 1px solid var(--border-color); padding: 8px; margin-top: 5px;" onchange="window.ConfigView.save()">
+                    </div>
+                    <div style="display: flex; align-items: flex-end;">
+                        <button class="btn btn-secondary" onclick="window.ConfigView.fetchModels()" style="height: 35px;">🔄 Tester & Récupérer Modèles</button>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Modèle Sélectionné</label>
+                        <select id="conf_ollama_model" class="inline-input" style="border: 1px solid var(--border-color); padding: 8px; margin-top: 5px;" onchange="window.ConfigView.save()">
+                            <option value="">-- Aucun modèle chargé --</option>
+                        </select>
+                        <p style="font-size: 10px; color: var(--color-expense); margin-top: 5px;">⚠️ Attention : pour l'extraction CSV intelligente et l'usage d'outils, un modèle récent (ex: gemma4:e4b, llama3.1) est fortement recommandé.</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 20px; margin-bottom: 15px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Température (Créativité)</label>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+                            <input type="range" id="conf_ollama_temp_slider" min="0" max="1" step="0.1" value="0.3" style="flex: 1;" oninput="document.getElementById('conf_ollama_temp').value = this.value" onchange="window.ConfigView.save()">
+                            <input type="number" id="conf_ollama_temp" class="inline-input" min="0" max="1" step="0.1" value="0.3" style="width: 60px; border: 1px solid var(--border-color); padding: 5px; text-align: center;" oninput="document.getElementById('conf_ollama_temp_slider').value = this.value" onchange="window.ConfigView.save()">
+                        </div>
+                        <p style="font-size: 10px; color: var(--text-muted); margin-top: 5px;">Basse (0.1-0.3) pour l'analyse stricte, Haute (0.7-1.0) pour la conversation.</p>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Taille du Contexte</label>
+                        <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 5px;">
+                            <input type="number" id="conf_ollama_ctx" class="inline-input" value="4096" style="border: 1px solid var(--border-color); padding: 8px;" onchange="window.ConfigView.save()">
+                            <div style="display: flex; gap: 5px;">
+                                <button class="btn btn-secondary" style="padding: 2px 8px; font-size: 10px;" onclick="document.getElementById('conf_ollama_ctx').value='2048'; window.ConfigView.save()">2K</button>
+                                <button class="btn btn-secondary" style="padding: 2px 8px; font-size: 10px;" onclick="document.getElementById('conf_ollama_ctx').value='4096'; window.ConfigView.save()">4K</button>
+                                <button class="btn btn-secondary" style="padding: 2px 8px; font-size: 10px;" onclick="document.getElementById('conf_ollama_ctx').value='8192'; window.ConfigView.save()">8K</button>
+                                <button class="btn btn-secondary" style="padding: 2px 8px; font-size: 10px;" onclick="document.getElementById('conf_ollama_ctx').value='32768'; window.ConfigView.save()">32K</button>
+                            </div>
+                        </div>
+                        <p style="font-size: 10px; color: var(--text-muted); margin-top: 5px;">8K recommandé pour le Chat, 32K requis pour les gros imports CSV.</p>
+                    </div>
+                </div>
+
+                </div> <!-- End ollamaSettings -->
+            </div>
+
+            <div style="margin-bottom: 20px; background: var(--bg-surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+                <h3 style="display:flex; align-items:center; gap:8px;">✨ Fonctionnalités Optionnelles</h3>
+                <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 15px;">
+                    Activez ou désactivez des modules spécifiques dans le formulaire d'ajout d'opérations.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 500;">
+                        <div style="position: relative; width: 40px; height: 24px;">
+                            <input type="checkbox" id="conf_enable_bimonthly" class="global-toggle" style="opacity: 0; width: 0; height: 0; position: absolute;" onchange="window.ConfigView.save()">
+                            <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .4s; border-radius: 34px;"></span>
+                            <span class="slider-knob" style="position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+                        </div>
+                        Activer la récurrence bi-mensuelle
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 500;">
+                        <div style="position: relative; width: 40px; height: 24px;">
+                            <input type="checkbox" id="conf_enable_attachments" class="global-toggle" style="opacity: 0; width: 0; height: 0; position: absolute;" onchange="window.ConfigView.save()">
+                            <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .4s; border-radius: 34px;"></span>
+                            <span class="slider-knob" style="position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+                        </div>
+                        Activer les documents joints (Upload de fichiers)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 500;">
+                        <div style="position: relative; width: 40px; height: 24px;">
+                            <input type="checkbox" id="conf_enable_check_slips" class="global-toggle" style="opacity: 0; width: 0; height: 0; position: absolute;" onchange="window.ConfigView.save()">
+                            <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .4s; border-radius: 34px;"></span>
+                            <span class="slider-knob" style="position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+                        </div>
+                        Activer la saisie des numéros de bordereaux de chèques
+                    </label>
+                </div>
+                <style>
+                    .global-toggle:checked ~ .slider { background-color: var(--accent) !important; }
+                    .global-toggle:checked ~ .slider-knob { transform: translateX(16px) !important; }
+                </style>
+            </div>
+
+            <div style="margin-bottom: 20px; background: var(--bg-surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+                <h3 style="display:flex; align-items:center; gap:8px;" data-i18n="config_data_mgmt">Gestion des données</h3>
+                <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 15px;">
+                    Importez, exportez ou réinitialisez les données de votre application.
+                </p>
+                
+                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <!-- Export -->
+                    <button class="btn btn-secondary" onclick="window.ConfigView.exportCSV()" style="display: flex; align-items: center; gap: 5px;">
+                        📥 <span data-i18n="btn_export_csv">Exporter les données (CSV)</span>
+                    </button>
+                    
+                    <!-- Import -->
+                    <button class="btn btn-primary" onclick="window.ImportWizard.open()" style="display: flex; align-items: center; gap: 5px;">
+                        📤 <span data-i18n="btn_import_csv">Importer (CSV/XLSX)</span>
+                    </button>
+                    
+                    <!-- Backup -->
+                    <button class="btn btn-secondary" onclick="window.open('/api/backup/download', '_blank')" style="display: flex; align-items: center; gap: 5px;">
+                        💾 <span data-i18n="btn_download_backup">Télécharger Sauvegarde Complète (ZIP)</span>
+                    </button>
+
+                    <!-- Clear DB -->
+                    <button class="btn btn-danger" onclick="window.ConfigView.clearDB()" style="display: flex; align-items: center; gap: 5px; margin-left: auto;">
+                        ⚠️ <span data-i18n="btn_clear_db">Vider la base de données</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    },
+
+    async init() {
+        await this.loadData();
+    },
+
+    async loadData() {
+        try {
+            this.configData = await API.get('/api/config/');
+            
+            if (this.configData.ollama_url) {
+                document.getElementById('conf_ollama_url').value = this.configData.ollama_url;
+                // If URL is present, try to fetch models immediately
+                await this.fetchModels(true);
+            }
+            
+            if (this.configData.ollama_temperature) {
+                document.getElementById('conf_ollama_temp').value = this.configData.ollama_temperature;
+                document.getElementById('conf_ollama_temp_slider').value = this.configData.ollama_temperature;
+            }
+            if (this.configData.ollama_context) {
+                document.getElementById('conf_ollama_ctx').value = this.configData.ollama_context;
+            }
+            
+            if (this.configData.enable_ai === 'true') {
+                document.getElementById('conf_enable_ai').checked = true;
+                this.toggleAI(true);
+            } else {
+                this.toggleAI(false);
+            }
+            if (this.configData.enable_bimonthly === 'true') document.getElementById('conf_enable_bimonthly').checked = true;
+            if (this.configData.enable_attachments === 'true') document.getElementById('conf_enable_attachments').checked = true;
+            if (this.configData.enable_check_slips === 'true') document.getElementById('conf_enable_check_slips').checked = true;
+            
+        } catch (e) {
+            console.error("Failed to load config", e);
+        }
+    },
+
+    toggleAI(enabled) {
+        // Toggle settings visibility
+        const settings = document.getElementById('ollamaSettings');
+        if (settings) {
+            settings.style.display = enabled ? 'block' : 'none';
+        }
+        
+        // Toggle Chat Nav Button instantly
+        const chatBtn = document.querySelector('.nav-btn[data-view="chat"]');
+        if (chatBtn) {
+            chatBtn.style.display = enabled ? 'inline-block' : 'none';
+        }
+        
+        // Ensure app.config is synced so other views know
+        if (window.app && window.app.config) {
+            window.app.config.enable_ai = enabled ? 'true' : 'false';
+        }
+    },
+
+    async fetchModels(silent = false) {
+        const url = document.getElementById('conf_ollama_url').value;
+        if (!url) {
+            if (!silent) showInlineMessage("Info", "Veuillez saisir une URL Ollama valide.");
+            return;
+        }
+
+        // Save URL temporarily to allow backend to proxy
+        await API.post('/api/config/', { ollama_url: url });
+
+        try {
+            const data = await API.get('/api/config/ollama/models');
+            if (data.models && data.models.length > 0) {
+                this.models = data.models;
+                const select = document.getElementById('conf_ollama_model');
+                
+                select.innerHTML = this.models.map(m => `<option value="${m.name}">${m.name} (${(m.size / 1024 / 1024 / 1024).toFixed(1)} GB)</option>`).join('');
+                
+                // Select previously saved model if exists
+                if (this.configData.ollama_model) {
+                    select.value = this.configData.ollama_model;
+                }
+                if (!silent) showInlineMessage("Info", "Modèles récupérés avec succès !");
+            } else {
+                if (!silent) showInlineMessage("Info", "Aucun modèle trouvé sur ce serveur Ollama.");
+            }
+        } catch (e) {
+            console.error(e);
+            if (!silent) showInlineMessage("Info", "Erreur de connexion à Ollama. Vérifiez l'URL ou lancez 'ollama serve'.");
+        }
+    },
+
+    async save(btn) {
+        try {
+            const data = {
+                ollama_url: document.getElementById('conf_ollama_url').value,
+                ollama_model: document.getElementById('conf_ollama_model').value,
+                ollama_temperature: document.getElementById('conf_ollama_temp').value,
+                ollama_context: document.getElementById('conf_ollama_ctx').value,
+                enable_ai: document.getElementById('conf_enable_ai').checked ? 'true' : 'false',
+                enable_bimonthly: document.getElementById('conf_enable_bimonthly').checked ? 'true' : 'false',
+                enable_attachments: document.getElementById('conf_enable_attachments').checked ? 'true' : 'false',
+                enable_check_slips: document.getElementById('conf_enable_check_slips').checked ? 'true' : 'false'
+            };
+            
+            // Sync to window.app.config immediately
+            if (window.app) {
+                window.app.config = { ...window.app.config, ...data };
+            }
+            
+            await API.post('/api/config/', data);
+            
+            if (btn) {
+                const originalText = btn.textContent;
+                const originalBg = btn.style.backgroundColor;
+                btn.textContent = "✓ Enregistré";
+                btn.style.backgroundColor = "var(--color-income)";
+                btn.style.transition = "all 0.3s";
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.backgroundColor = originalBg;
+                }, 2000);
+            }
+        } catch (e) {
+            console.error(e);
+            showInlineMessage("Info", "Erreur lors de la sauvegarde.");
+        }
+    },
+
+    async exportCSV() {
+        const columns = [
+            "Date de saisie", "Date opération", "Description", "Montant", "Type", "Catégorie", 
+            "Date de rapprochement", "Répétition mensuelle", "Répétition annuelle", 
+            "Répétition bi-mensuelle", "Jour de récurrence 1", "Jour de récurrence 2",
+            "Documents joints", "Bordereau de chèque", "Depuis", "Vers", "ID"
+        ];
+        
+        const container = document.getElementById('exportColumnsContainer');
+        if (container) {
+            container.innerHTML = columns.map(col => `
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                    <input type="checkbox" class="export-col-cb" value="${col}" checked>
+                    ${col}
+                </label>
+            `).join('');
+            document.getElementById('exportConfigModal').style.display = 'flex';
+        } else {
+            window.open('/api/csv/export', '_blank');
+        }
+    },
+    
+    confirmExportCSV() {
+        const checkboxes = document.querySelectorAll('.export-col-cb:checked');
+        const selectedCols = Array.from(checkboxes).map(cb => cb.value).join(',');
+        
+        if (!selectedCols) {
+            showInlineMessage("Info", "Veuillez sélectionner au moins une colonne.");
+            return;
+        }
+        
+        document.getElementById('exportConfigModal').style.display = 'none';
+        window.open('/api/csv/export?cols=' + encodeURIComponent(selectedCols), '_blank');
+    },
+
+    // Import functions moved to import_wizard.js
+
+    async clearDB() {
+        const i18nMsg = (window.i18n && window.i18n.t) ? window.i18n.t('alert_clear_db') : "Êtes-vous sûr de vouloir supprimer TOUTES vos opérations ? Cette action est irréversible.";
+        if (await showInlineConfirm("Confirmation", i18nMsg)) {
+            try {
+                await API.del('/api/transactions/all/clear');
+                showInlineMessage("Info", "Base de données vidée avec succès.");
+                window.location.reload();
+            } catch (e) {
+                console.error(e);
+                showInlineMessage("Info", "Erreur lors de la suppression.");
+            }
+        }
+    }
+};

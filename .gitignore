@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+venv/
+env/
+.env
+
+# Databases & Financial Data
+*.db
+*.sqlite
+*.sqlite3
+*.csv
+*.xlsx
+*.xls
+*.pdf
+data/uploads/
+export_omnibank*
+CA*.csv
+CA*.xlsx
+
+# Project Docs / Personal Docs
+/Cahier des charges.md
+/Construction Plan.yaml
+/Bank Data Example*
+scratch/
+
+# OS specific
+.DS_Store
+Thumbs.db

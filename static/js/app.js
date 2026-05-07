@@ -1,0 +1,348 @@
+// app.js - Main orchestrator
+
+class App {
+    constructor() {
+        this.currentView = 'dashboard';
+        this.views = {};
+    }
+
+    async init() {
+        // Init i18n
+        await window.i18n.init();
+        
+        // Load Global Config
+        try {
+            this.config = await API.get('/api/config/');
+        } catch (e) {
+            console.error("Failed to load global config", e);
+            this.config = {};
+        }
+        
+        // Theme toggle
+        const savedTheme = localStorage.getItem('omni_theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('theme-dark');
+        } else if (savedTheme === 'light') {
+            document.body.classList.remove('theme-dark');
+        }
+        
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            document.body.classList.toggle('theme-dark');
+            const isDark = document.body.classList.contains('theme-dark');
+            localStorage.setItem('omni_theme', isDark ? 'dark' : 'light');
+        });
+        
+        // Privacy toggle
+        const privacyToggle = document.getElementById('privacyToggle');
+        if (privacyToggle) {
+            if (localStorage.getItem('omni_privacy') === 'true') {
+                document.body.classList.add('privacy-mode');
+                privacyToggle.textContent = '🙈';
+            }
+            
+            privacyToggle.addEventListener('click', () => {
+                document.body.classList.toggle('privacy-mode');
+                const isPrivate = document.body.classList.contains('privacy-mode');
+                privacyToggle.textContent = isPrivate ? '🙈' : '👁️';
+                localStorage.setItem('omni_privacy', isPrivate);
+            });
+        }
+        
+        // Language dropdown
+        const langToggleBtn = document.getElementById('langToggleBtn');
+        const langMenu = document.getElementById('langMenu');
+        const currentLangFlag = document.getElementById('currentLangFlag');
+        
+        if (langToggleBtn && langMenu) {
+            // Update initial flag
+            currentLangFlag.className = `fi fi-${window.i18n.lang === 'en' ? 'gb' : 'fr'}`;
+            
+            langToggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                langMenu.style.display = langMenu.style.display === 'none' ? 'block' : 'none';
+            });
+            
+            document.querySelectorAll('.lang-option').forEach(opt => {
+                opt.addEventListener('click', async (e) => {
+                    const l = e.currentTarget.getAttribute('data-lang');
+                    currentLangFlag.className = `fi fi-${l === 'en' ? 'gb' : 'fr'}`;
+                    langMenu.style.display = 'none';
+                    await window.i18n.setLang(l);
+                });
+            });
+            
+            document.addEventListener('click', () => {
+                langMenu.style.display = 'none';
+            });
+        }
+        
+        // Mobile Sidebar
+        const mobileBtn = document.getElementById('mobileMenuBtn');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        if (mobileBtn && sidebar && overlay) {
+            mobileBtn.addEventListener('click', () => {
+                sidebar.classList.add('mobile-open');
+                overlay.classList.add('active');
+            });
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('mobile-open');
+                overlay.classList.remove('active');
+            });
+            // Close sidebar when clicking a nav button on mobile
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    sidebar.classList.remove('mobile-open');
+                    overlay.classList.remove('active');
+                });
+            });
+        }
+        
+        // AI Features Visibility
+        const chatBtn = document.querySelector('.nav-btn[data-view="chat"]');
+        if (chatBtn) {
+            chatBtn.style.display = this.config.enable_ai === 'true' ? 'inline-block' : 'none';
+        }
+
+        // Navigation
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.loadView(e.currentTarget.getAttribute('data-view'));
+            });
+        });
+
+        // Initial Load
+        await this.refreshSidebar();
+        
+        // Restore view from localStorage
+        const savedView = localStorage.getItem('omni_current_view') || this.currentView;
+        this.loadView(savedView);
+    }
+
+    async refreshSidebar() {
+        try {
+            const accounts = await API.get('/api/stats/accounts');
+            this.accounts = accounts;
+            const list = document.getElementById('accountsList');
+            list.innerHTML = '';
+            
+            accounts.filter(a => !a.is_closed).forEach(acc => {
+                const div = document.createElement('div');
+                div.className = 'account-item';
+                div.innerHTML = `<span>${acc.name}</span><strong>${formatCurrency(acc.balance)}</strong>`;
+                list.appendChild(div);
+            });
+
+            const stats = await API.get('/api/stats/dashboard');
+            document.getElementById('valNetWorth').textContent = formatCurrency(stats.net_worth);
+            document.getElementById('valRestToLive').textContent = formatCurrency(stats.rest_to_live);
+            // Unreconciled expenses box
+            const valUnreconciled = document.getElementById('valUnreconciled');
+            if (valUnreconciled) {
+                valUnreconciled.textContent = formatCurrency(stats.unreconciled_expenses || 0);
+                document.getElementById('unreconciledBox').style.display = 'flex';
+            }
+            
+            // Next Paycheck UI
+            const payAmtSpan = document.getElementById('valNextPayAmount');
+            const payDateDiv = document.getElementById('valNextPayDate');
+            if (stats.next_pay_date) {
+                payAmtSpan.textContent = formatCurrency(stats.next_pay_amount);
+                payDateDiv.textContent = formatDate(stats.next_pay_date) + (stats.is_pay_override ? ' (Manuel)' : '');
+                
+                // Store globally for timeline filtering and history modal
+                window.app.nextPayDate = stats.next_pay_date;
+                window.app.payHistory = stats.pay_history || [];
+                
+                // Pre-fill modal
+                document.getElementById('overridePayDate').value = stats.next_pay_date;
+                document.getElementById('overridePayAmount').value = stats.next_pay_amount;
+            }
+            
+            // Load base pay day config
+            const configs = window.app.config || await API.get('/api/config/');
+            
+            const bimonthlyOpt = document.getElementById('quickPayOptBimonthly');
+            const typeContainer = document.getElementById('quickPayTypeContainer');
+            if (configs.enable_bimonthly === 'true' || configs.enable_bimonthly === true) {
+                bimonthlyOpt.hidden = false;
+                bimonthlyOpt.disabled = false;
+                typeContainer.style.display = 'flex';
+            } else {
+                bimonthlyOpt.hidden = true;
+                bimonthlyOpt.disabled = true;
+                typeContainer.style.display = 'none';
+                if (document.getElementById('quickPayType').value === 'bimonthly') {
+                    document.getElementById('quickPayType').value = 'monthly';
+                }
+            }
+            
+            if (configs.base_pay_type) document.getElementById('quickPayType').value = configs.base_pay_type;
+            if (configs.base_pay_day) document.getElementById('quickPayDay').value = configs.base_pay_day;
+            if (configs.base_pay_day_2) document.getElementById('quickPayDay2').value = configs.base_pay_day_2;
+            
+            this.onQuickPayTypeChange(false);
+            
+            const overdraftBox = document.getElementById('overdraftBox');
+            if (stats.overdraft_warning) {
+                overdraftBox.style.display = 'block';
+                document.getElementById('valOverdraft').textContent = formatCurrency(stats.overdraft_warning.projected_balance);
+                document.getElementById('valOverdraftDate').textContent = `${formatDate(stats.overdraft_warning.date)} (${stats.overdraft_warning.transaction_description})`;
+                
+                const expText = `Si aucune rentrée d'argent d'ici le ${formatDate(stats.overdraft_warning.date)}, risque de découvert causé par cette opération.`;
+                document.getElementById('valOverdraftExplanation').textContent = expText;
+                
+                const btnLocate = document.getElementById('btnLocateOverdraft');
+                if (btnLocate) {
+                    btnLocate.onclick = () => {
+                        window.app.loadView('all_operations');
+                        // Wait for rendering, then scroll and highlight
+                        setTimeout(() => {
+                            const row = document.querySelector(`tr[data-id="${stats.overdraft_warning.transaction_id}"]`);
+                            if (row) {
+                                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                row.style.transition = 'background-color 0.5s';
+                                const oldBg = row.style.backgroundColor;
+                                row.style.backgroundColor = 'rgba(255, 86, 48, 0.2)';
+                                setTimeout(() => row.style.backgroundColor = oldBg, 3000);
+                            }
+                        }, 500);
+                    };
+                }
+            } else {
+                overdraftBox.style.display = 'none';
+            }
+        } catch (e) {
+            console.error("Error refreshing sidebar", e);
+        }
+    }
+    
+    showPayOverrideModal() {
+        document.getElementById('payOverrideModal').style.display = 'flex';
+    }
+    
+    showPayHistoryModal() {
+        const tbody = document.getElementById('payHistoryTableBody');
+        tbody.innerHTML = '';
+        
+        if (!this.payHistory || this.payHistory.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 15px; color: var(--text-muted);">Aucun historique détecté pour le moment.</td></tr>`;
+        } else {
+            this.payHistory.forEach(tx => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = "1px solid var(--border-color)";
+                tr.innerHTML = `
+                    <td style="padding: 8px;">${formatDate(tx.date)}</td>
+                    <td style="padding: 8px;"><strong>${tx.description}</strong></td>
+                    <td style="padding: 8px; text-align: right; color: var(--color-income); font-weight: bold;">${formatCurrency(tx.amount)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        document.getElementById('payHistoryModal').style.display = 'flex';
+    }
+    
+    async savePayOverride() {
+        const date = document.getElementById('overridePayDate').value;
+        const amount = parseFloat(document.getElementById('overridePayAmount').value) || 0;
+        
+        if (!date) return;
+        
+        try {
+            await API.post('/api/stats/override_paycheck', { date, amount });
+            document.getElementById('payOverrideModal').style.display = 'none';
+            await this.refreshSidebar();
+            if (this.currentView === 'dashboard' && window.TimelineView.loadData) {
+                window.TimelineView.loadData();
+            }
+        } catch (e) {
+            console.error("Failed to save override", e);
+            showInlineMessage("Info", "Erreur lors de la sauvegarde.");
+        }
+    }
+    
+    onQuickPayTypeChange(save = false) {
+        const isBimonthly = document.getElementById('quickPayType').value === 'bimonthly';
+        document.getElementById('quickPayDay2').style.display = isBimonthly ? 'block' : 'none';
+        document.getElementById('lblQuickPayDay1').textContent = isBimonthly ? 'Jours :' : 'Jour :';
+        if (save) this.saveQuickPay();
+    }
+    
+    async saveQuickPay() {
+        const type = document.getElementById('quickPayType').value;
+        const day = document.getElementById('quickPayDay').value;
+        const day2 = document.getElementById('quickPayDay2').value;
+        
+        if (!day) return;
+        
+        try {
+            await API.post('/api/config/', { 
+                base_pay_type: type,
+                base_pay_day: day.toString(),
+                base_pay_day_2: day2.toString()
+            });
+            await this.refreshSidebar();
+            if (this.currentView === 'dashboard' && window.TimelineView.loadData) {
+                window.TimelineView.loadData();
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    loadView(viewName) {
+        this.currentView = viewName;
+        localStorage.setItem('omni_current_view', viewName);
+        
+        // Update nav buttons active state
+        document.querySelectorAll('.nav-btn').forEach(b => {
+            if (b.getAttribute('data-view') === viewName) {
+                b.classList.add('active');
+            } else {
+                b.classList.remove('active');
+            }
+        });
+
+        const main = document.getElementById('mainContent');
+        
+        if (viewName === 'dashboard' && window.TimelineView) {
+            main.innerHTML = window.TimelineView.render();
+            window.TimelineView.init();
+        } else if (viewName === 'recurrences' && window.RecurrenceView) {
+            main.innerHTML = window.RecurrenceView.render();
+            window.RecurrenceView.init();
+        } else if (viewName === 'categories' && window.CategoriesView) {
+            main.innerHTML = window.CategoriesView.render();
+            window.CategoriesView.init();
+        } else if (viewName === 'accounts' && window.AccountsView) {
+            main.innerHTML = window.AccountsView.render();
+            window.AccountsView.init();
+        } else if (viewName === 'config' && window.ConfigView) {
+            main.innerHTML = window.ConfigView.render();
+            window.ConfigView.init();
+        } else if (viewName === 'chat' && window.ChatView) {
+            main.innerHTML = window.ChatView.render();
+            window.ChatView.init();
+        } else if (viewName === 'all_operations' && window.AllOperationsView) {
+            main.innerHTML = window.AllOperationsView.render();
+            window.AllOperationsView.init();
+        } else if (viewName === 'analytics' && window.AnalyticsView) {
+            main.innerHTML = window.AnalyticsView.render();
+            window.AnalyticsView.init();
+        } else if (viewName === 'budgets' && window.BudgetsView) {
+            main.innerHTML = window.BudgetsView.render();
+            window.BudgetsView.init();
+        } else if (viewName === 'trends' && window.TrendsView) {
+            main.innerHTML = window.TrendsView.render();
+            window.TrendsView.init();
+        } else {
+            main.innerHTML = `<h2>${window.i18n.t('nav_' + viewName)}</h2><p>En construction...</p>`;
+        }
+        
+        window.i18n.translateDOM(main);
+    }
+}
+
+window.app = new App();
+document.addEventListener('DOMContentLoaded', () => window.app.init());

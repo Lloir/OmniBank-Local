@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+sqlalchemy
+pandas
+httpx
+chardet
+python-multipart
+pydantic
+pydantic-settings
+python-dateutil
+pytest
+openpyxl

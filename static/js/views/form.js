@@ -1,0 +1,542 @@
+window.FormView = {
+    categories: [],
+    accounts: [],
+    descriptions: [],
+    currentTxId: null,
+    currentTxBase: null,
+
+    async init() {
+        await this.loadAccounts();
+        await this.loadCategories();
+        await this.loadDescriptions();
+    },
+
+    async open() {
+        this.currentTxId = null;
+        this.currentTxBase = null;
+        
+        document.getElementById('op_desc').value = '';
+        document.getElementById('op_amount').value = '';
+        document.getElementById('op_date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('op_date_saisie').value = new Date().toISOString().split('T')[0];
+        document.getElementById('op_recon_date').value = '';
+        
+        document.getElementById('op_is_recurrent').checked = false;
+        document.getElementById('op_is_recurrent').disabled = false;
+        
+        document.getElementById('op_from_account').value = '';
+        document.getElementById('op_to_account').value = '';
+        
+        document.getElementById('op_check_slip').value = '';
+        document.getElementById('op_attachments').value = '';
+        document.getElementById('op_attachments_list').innerHTML = '';
+        document.getElementById('op_rec_day_1').value = '';
+        document.getElementById('op_rec_day_2').value = '';
+        
+        this.applyConfigVisibility();
+        
+        this.toggleRecurrenceFields();
+        this.hideNewCatInput();
+        
+        // Load data if not already loaded
+        if (this.accounts.length === 0) await this.init();
+        
+        this.renderAccountsDropdowns(null, null);
+        
+        this.updateInferredType();
+        
+        document.getElementById('operationModal').style.display = 'flex';
+    },
+
+    async openEdit(tx) {
+        this.currentTxId = tx.id;
+        this.currentTxBase = tx;
+        
+        document.getElementById('op_desc').value = tx.description;
+        document.getElementById('op_amount').value = tx.amount;
+        document.getElementById('op_date').value = tx.date_operation;
+        document.getElementById('op_date_saisie').value = tx.date_saisie || new Date().toISOString().split('T')[0];
+        document.getElementById('op_recon_date').value = tx.reconciliation_date || '';
+        
+        // Determine if recurrent
+        const isRecurrent = tx.is_monthly || tx.is_yearly || !!tx.recurrence_id;
+        document.getElementById('op_is_recurrent').checked = isRecurrent;
+        document.getElementById('op_is_recurrent').disabled = true; // Cannot toggle an existing one
+        
+        if (this.accounts.length === 0) await this.init();
+        
+        this.renderAccountsDropdowns(tx.from_account_id, tx.to_account_id);
+        
+        document.getElementById('op_from_account').value = tx.from_account_id || '';
+        document.getElementById('op_to_account').value = tx.to_account_id || '';
+        
+        document.getElementById('op_check_slip').value = tx.check_slip_number || '';
+        document.getElementById('op_attachments').value = tx.attachments || '';
+        this.renderAttachmentsList(tx.attachments);
+        
+        if (tx.is_bimonthly) {
+            document.getElementById('op_rec_freq').value = 'Bi-Monthly';
+            document.getElementById('op_rec_day_1').value = tx.recurrence_day_1 || '';
+            document.getElementById('op_rec_day_2').value = tx.recurrence_day_2 || '';
+        } else if (tx.is_monthly) {
+            document.getElementById('op_rec_freq').value = 'Monthly';
+        } else if (tx.is_yearly) {
+            document.getElementById('op_rec_freq').value = 'Yearly';
+        }
+        
+        this.applyConfigVisibility();
+        this.toggleRecurrenceFields();
+        this.hideNewCatInput();
+        
+        // This will update the type listbox and filter categories
+        this.updateInferredType();
+        
+        if (tx.category) {
+            document.getElementById('op_category').value = tx.category;
+        }
+
+        document.getElementById('operationModal').style.display = 'flex';
+    },
+
+    close() {
+        document.getElementById('operationModal').style.display = 'none';
+        this.currentTxId = null;
+        this.currentTxBase = null;
+    },
+
+    toggleRecurrenceFields() {
+        const isRecurrent = document.getElementById('op_is_recurrent').checked;
+        document.getElementById('op_rec_freq').style.display = isRecurrent ? 'block' : 'none';
+        this.onFreqChange();
+        this.updateInferredType();
+    },
+
+    onFreqChange() {
+        const isRecurrent = document.getElementById('op_is_recurrent').checked;
+        const freq = document.getElementById('op_rec_freq').value;
+        const showDays = isRecurrent && freq === 'Bi-Monthly';
+        document.getElementById('op_bimonthly_days_container').style.display = showDays ? 'block' : 'none';
+    },
+
+    calculateDay2() {
+        const day1 = parseInt(document.getElementById('op_rec_day_1').value);
+        if (!isNaN(day1) && day1 >= 1 && day1 <= 31) {
+            let day2 = day1 + 15;
+            if (day2 > 30) day2 = day2 - 30;
+            document.getElementById('op_rec_day_2').value = day2;
+        }
+    },
+
+    applyConfigVisibility() {
+        const cfg = window.app.config || {};
+        
+        // Dynamically add/remove Bi-Monthly option
+        const selectFreq = document.getElementById('op_rec_freq');
+        let optBimonthly = Array.from(selectFreq.options).find(o => o.value === 'Bi-Monthly');
+        
+        if (cfg.enable_bimonthly === 'true' || cfg.enable_bimonthly === true) {
+            if (!optBimonthly) {
+                optBimonthly = document.createElement('option');
+                optBimonthly.value = 'Bi-Monthly';
+                optBimonthly.textContent = 'Bi-mensuelle';
+                selectFreq.insertBefore(optBimonthly, selectFreq.firstChild);
+            }
+        } else {
+            if (optBimonthly) {
+                if (selectFreq.value === 'Bi-Monthly') selectFreq.value = 'Monthly';
+                optBimonthly.remove();
+            }
+        }
+        
+        if (cfg.enable_check_slips === 'true' || cfg.enable_check_slips === true) {
+            document.getElementById('op_check_slip_container').style.display = 'block';
+        } else {
+            document.getElementById('op_check_slip_container').style.display = 'none';
+        }
+        
+        if (cfg.enable_attachments === 'true' || cfg.enable_attachments === true) {
+            document.getElementById('op_attachments_container').style.display = 'block';
+        } else {
+            document.getElementById('op_attachments_container').style.display = 'none';
+        }
+    },
+    
+    async uploadFile(input) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        
+        const fd = new FormData();
+        fd.append("file", file);
+        
+        try {
+            const res = await fetch('/api/upload', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (res.ok && data.path) {
+                let current = document.getElementById('op_attachments').value;
+                let paths = current ? current.split(',') : [];
+                paths.push(data.path);
+                const newVal = paths.join(',');
+                document.getElementById('op_attachments').value = newVal;
+                this.renderAttachmentsList(newVal);
+            } else {
+                showInlineMessage("Erreur", "L'envoi du fichier a échoué.");
+            }
+        } catch(e) {
+            console.error(e);
+            showInlineMessage("Erreur", "Erreur réseau lors de l'envoi.");
+        }
+        input.value = '';
+    },
+    
+    renderAttachmentsList(attachmentsStr) {
+        const list = document.getElementById('op_attachments_list');
+        list.innerHTML = '';
+        if (!attachmentsStr) return;
+        
+        const paths = attachmentsStr.split(',');
+        paths.forEach((p, idx) => {
+            const name = p.split('/').pop().split('\\').pop();
+            const div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.gap = '10px';
+            div.style.alignItems = 'center';
+            div.innerHTML = `
+                📄 <a href="/${p}" target="_blank" style="color:var(--accent);text-decoration:none; flex:1;">${name}</a>
+                <span style="cursor:pointer; color:var(--color-expense);" onclick="window.FormView.removeAttachment(${idx})">❌</span>
+            `;
+            list.appendChild(div);
+        });
+    },
+
+    removeAttachment(idx) {
+        let current = document.getElementById('op_attachments').value;
+        if (!current) return;
+        let paths = current.split(',');
+        paths.splice(idx, 1);
+        const newVal = paths.join(',');
+        document.getElementById('op_attachments').value = newVal;
+        this.renderAttachmentsList(newVal);
+    },
+
+    async loadAccounts() {
+        try {
+            this.accounts = await API.get('/api/accounts/');
+            this.renderAccountsDropdowns(null, null);
+        } catch (e) {
+            console.error('Failed to load accounts', e);
+        }
+    },
+
+    renderAccountsDropdowns(currentFrom, currentTo) {
+        const renderAcc = (selectId, currentVal) => {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            select.innerHTML = '<option value="">--</option>' + this.accounts
+                .filter(a => !a.is_closed || a.id == currentVal)
+                .map(a => `<option value="${a.id}">${a.name}${a.is_closed ? ' (Fermé)' : ''}</option>`).join('');
+        };
+        renderAcc('op_from_account', currentFrom);
+        renderAcc('op_to_account', currentTo);
+    },
+    
+    async loadDescriptions() {
+        try {
+            this.descriptions = await API.get('/api/transactions/descriptions');
+            const dataList = document.getElementById('descList');
+            // descriptions is now a dictionary: { "Desc": {category, from_account_id, to_account_id}, ... }
+            dataList.innerHTML = Object.keys(this.descriptions).map(d => `<option value="${d}">`).join('');
+        } catch (e) {
+            console.error('Failed to load descriptions', e);
+        }
+    },
+
+    onDescriptionInput() {
+        const desc = document.getElementById('op_desc').value;
+        if (this.descriptions && this.descriptions[desc]) {
+            const data = this.descriptions[desc];
+            
+            if (data.from_account_id !== null) {
+                document.getElementById('op_from_account').value = data.from_account_id;
+            } else {
+                document.getElementById('op_from_account').value = '';
+            }
+            
+            if (data.to_account_id !== null) {
+                document.getElementById('op_to_account').value = data.to_account_id;
+            } else {
+                document.getElementById('op_to_account').value = '';
+            }
+            
+            this.updateInferredType();
+            
+            if (data.category) {
+                document.getElementById('op_category').value = data.category;
+            }
+        }
+    },
+
+    async loadCategories() {
+        try {
+            this.categories = await API.get('/api/categories/');
+            this.renderCategories();
+        } catch (e) {
+            console.error(e);
+        }
+    },
+
+    updateInferredType() {
+        const fromAcc = document.getElementById('op_from_account').value;
+        const toAcc = document.getElementById('op_to_account').value;
+        const isRecurrent = document.getElementById('op_is_recurrent').checked;
+        
+        let type = 'Neutre';
+        if (fromAcc && toAcc) {
+            type = 'Transfert interne';
+        } else if (!fromAcc && toAcc) {
+            type = 'Recettes';
+        } else if (fromAcc && !toAcc) {
+            type = isRecurrent ? 'Dépenses fixes' : 'Dépenses variables';
+        } else {
+            type = 'Neutre';
+        }
+        
+        // Update hidden input and display badge
+        document.getElementById('op_tx_type').value = type === 'Transfert interne' ? 'Transfert' : type;
+        document.getElementById('op_inferred_type_display').textContent = type;
+        
+        // Change badge color based on type
+        const badge = document.getElementById('op_inferred_type_display');
+        if (type === 'Recettes') {
+            badge.style.backgroundColor = '#10b981'; // Green
+        } else if (type === 'Transfert interne') {
+            badge.style.backgroundColor = '#3b82f6'; // Blue
+        } else if (type === 'Dépenses variables') {
+            badge.style.backgroundColor = '#f59e0b'; // Orange
+        } else if (type === 'Dépenses fixes') {
+            badge.style.backgroundColor = '#ef4444'; // Red
+        } else {
+            badge.style.backgroundColor = 'var(--text-muted)';
+        }
+        
+        this.renderCategories();
+    },
+
+    renderCategories() {
+        const currentType = document.getElementById('op_tx_type').value;
+        const select = document.getElementById('op_category');
+        
+        // Check for search input
+        const searchInput = document.getElementById('op_category_search');
+        const search = searchInput ? searchInput.value.toLowerCase() : '';
+        
+        const currentVal = select.value;
+        
+        let html = '<option value="">-- Sans catégorie --</option>';
+        this.categories.forEach(c => {
+            if (!currentType || currentType === 'Neutre' || c.type === currentType) {
+                if (!search || c.name.toLowerCase().includes(search)) {
+                    html += `<option value="${c.name}">${c.name}</option>`;
+                }
+            }
+        });
+        
+        select.innerHTML = html;
+        if (currentVal) {
+            select.value = currentVal;
+        }
+    },
+
+    showNewCatInput() {
+        document.getElementById('newCatForm').style.display = 'flex';
+        document.getElementById('new_cat_name').focus();
+    },
+    
+    hideNewCatInput() {
+        document.getElementById('newCatForm').style.display = 'none';
+        document.getElementById('new_cat_name').value = '';
+    },
+
+    async createNewCategory() {
+        const name = document.getElementById('new_cat_name').value;
+        const type = document.getElementById('op_tx_type').value;
+        
+        if (!name) return;
+        if (!type || type === 'Neutre') {
+            showInlineMessage("Info", 'Veuillez sélectionner des comptes (Depuis/Vers) pour définir un Type de transaction avant de créer une catégorie.');
+            return;
+        }
+
+        try {
+            const newCat = await API.post('/api/categories/', { name, type });
+            await this.loadCategories();
+            this.updateInferredType();
+            document.getElementById('op_category').value = newCat.name;
+            this.hideNewCatInput();
+        } catch (e) {
+            showInlineMessage("Info", "Erreur création catégorie");
+        }
+    },
+
+    async autoCategorizeCurrent() {
+        const desc = document.getElementById('op_desc').value;
+        const amount = document.getElementById('op_amount').value;
+        if (!desc) {
+            showInlineMessage('Info', 'Saisissez une description avant de demander une catégorisation.');
+            return;
+        }
+        const btn = document.getElementById('op_autocat_btn');
+        btn.disabled = true;
+        btn.textContent = '⏳';
+        try {
+            const res = await fetch('/api/chat/autocategorize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description: desc, amount: parseFloat(amount) || null })
+            });
+            if (!res.ok) throw new Error('Erreur API');
+            const data = await res.json();
+            const cat = data.category;
+            if (cat) {
+                // Try to select existing, otherwise set search and prompt creation
+                const select = document.getElementById('op_category');
+                const match = Array.from(select.options).find(o => o.value.toLowerCase() === cat.toLowerCase());
+                if (match) {
+                    select.value = match.value;
+                } else {
+                    // Not in list — prefill new category name
+                    document.getElementById('op_category_search').value = cat;
+                    this.renderCategories();
+                    document.getElementById('new_cat_name').value = cat;
+                    this.showNewCatInput();
+                }
+            }
+        } catch(e) {
+            showInlineMessage('Info', 'Erreur auto-catégorisation : ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '✨ IA';
+        }
+    },
+
+    async save() {
+        const desc = document.getElementById('op_desc').value;
+        const amount = parseFloat(document.getElementById('op_amount').value) || 0;
+        const dateOp = document.getElementById('op_date').value;
+        const reconDate = document.getElementById('op_recon_date').value;
+        
+        const type = document.getElementById('op_tx_type').value;
+        const category = document.getElementById('op_category').value;
+        
+        const fromAcc = document.getElementById('op_from_account').value;
+        const toAcc = document.getElementById('op_to_account').value;
+        
+        const isRecurrent = document.getElementById('op_is_recurrent').checked;
+
+        if (!desc || !dateOp) return await showInlineMessage("Info", "Description et Date requises");
+
+        this.pendingSaveData = {
+            date_operation: dateOp,
+            description: desc,
+            amount: amount,
+            type: type,
+            category: category || null,
+            reconciliation_date: reconDate || null,
+            from_account_id: fromAcc ? parseInt(fromAcc) : null,
+            to_account_id: toAcc ? parseInt(toAcc) : null,
+            check_slip_number: document.getElementById('op_check_slip').value || null,
+            attachments: document.getElementById('op_attachments').value || null
+        };
+
+        if (this.currentTxId) {
+            // Edit Mode
+            if (isRecurrent || (this.currentTxBase && this.currentTxBase.recurrence_id)) {
+                // Show propagate modal
+                document.getElementById('propagateConfirmModal').style.display = 'flex';
+                return; // Pauses save until confirmation
+            } else {
+                this.executeSave(false);
+            }
+        } else {
+            // Create Mode
+            if (isRecurrent) {
+                const freq = document.getElementById('op_rec_freq').value;
+                const dateObj = new Date(dateOp);
+                this.pendingSaveData.frequency = freq;
+                this.pendingSaveData.is_monthly = (freq === 'Monthly');
+                this.pendingSaveData.is_yearly = (freq === 'Yearly');
+                this.pendingSaveData.is_bimonthly = (freq === 'Bi-Monthly');
+                
+                if (freq === 'Bi-Monthly') {
+                    this.pendingSaveData.recurrence_day_1 = parseInt(document.getElementById('op_rec_day_1').value) || dateObj.getDate();
+                    this.pendingSaveData.recurrence_day_2 = parseInt(document.getElementById('op_rec_day_2').value) || null;
+                    this.pendingSaveData.day_of_month = this.pendingSaveData.recurrence_day_1;
+                } else {
+                    this.pendingSaveData.day_of_month = dateObj.getDate();
+                }
+            }
+            this.executeSave(false);
+        }
+    },
+    
+    confirmPropagate(propagate) {
+        document.getElementById('propagateConfirmModal').style.display = 'none';
+        this.executeSave(propagate);
+    },
+
+    async executeSave(propagate) {
+        try {
+            if (this.currentTxId) {
+                // UPDATE
+                await API.put(`/api/transactions/${this.currentTxId}?propagate=${propagate}`, this.pendingSaveData);
+            } else {
+                // CREATE
+                if (document.getElementById('op_is_recurrent').checked) {
+                    const tplData = {
+                        description: this.pendingSaveData.description,
+                        amount: this.pendingSaveData.amount,
+                        type: this.pendingSaveData.type,
+                        category: this.pendingSaveData.category,
+                        frequency: this.pendingSaveData.frequency,
+                        day_of_month: this.pendingSaveData.day_of_month,
+                        from_account_id: this.pendingSaveData.from_account_id,
+                        to_account_id: this.pendingSaveData.to_account_id
+                    };
+                    
+                    const newTpl = await API.post('/api/recurrences/', tplData);
+                    
+                    const txData = { ...this.pendingSaveData, date_saisie: new Date().toISOString().split('T')[0] };
+                    delete txData.frequency; delete txData.day_of_month;
+                    txData.recurrence_id = newTpl.id;
+                    
+                    await API.post('/api/transactions/', txData);
+                    await API.post('/api/recurrences/generate_to_end_of_year', {});
+                    
+                } else {
+                    const txData = { ...this.pendingSaveData, date_saisie: new Date().toISOString().split('T')[0] };
+                    await API.post('/api/transactions/', txData);
+                }
+            }
+
+            this.close();
+            
+            // Reload descriptions on save
+            this.loadDescriptions();
+            
+            if (window.app.currentView === 'dashboard' && window.TimelineView.loadData) {
+                window.TimelineView.loadData();
+            }
+            if (window.app.currentView === 'all_operations' && window.AllOperationsView.loadData) {
+                window.AllOperationsView.loadData();
+            }
+            if (window.app.currentView === 'recurrences' && window.RecurrenceView.loadData) {
+                window.RecurrenceView.loadData();
+            }
+            window.app.refreshSidebar();
+
+        } catch (e) {
+            console.error(e);
+            showInlineMessage("Info", "Erreur lors de l'enregistrement");
+        }
+    }
+};
+

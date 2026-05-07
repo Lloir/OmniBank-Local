@@ -1,0 +1,15 @@
+
+services:
+  api:
+    build: .
+    ports:
+      - "8434:8434"
+    volumes:
+      - ./app:/app/app
+      - ./data:/app/data
+      - ./static:/app/static
+      - ./scratch:/app/scratch
+    environment:
+      - DATABASE_URL=sqlite:///./data/omnibank.db
+      - TZ=Europe/Paris
+    restart: unless-stopped

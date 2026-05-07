@@ -1,0 +1,79 @@
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey
+from app.database import Base
+
+class Account(Base):
+    __tablename__ = "accounts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+    type = Column(String) # "Compte courant", "Livret", etc.
+    initial_balance = Column(Float, default=0.0)
+    is_closed = Column(Boolean, default=False)
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    csv_id = Column(String, unique=True, index=True, nullable=True) # Used for deduplication on import
+    
+    date_saisie = Column(Date)
+    date_operation = Column(Date)
+    description = Column(String)
+    
+    amount = Column(Float) # Always positive/absolute value
+    
+    type = Column(String) # "Dépenses fixes", "Recettes", "Dépenses variables", "Neutre"
+    category = Column(String, nullable=True)
+    
+    reconciliation_date = Column(Date, nullable=True) # null if not reconciled
+    
+    is_monthly = Column(Boolean, default=False)
+    is_yearly = Column(Boolean, default=False)
+    is_bimonthly = Column(Boolean, default=False)
+    
+    recurrence_day_1 = Column(Integer, nullable=True)
+    recurrence_day_2 = Column(Integer, nullable=True)
+    
+    attachments = Column(String, nullable=True) # JSON or comma-separated paths
+    check_slip_number = Column(String, nullable=True)
+    
+    from_account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True)
+    to_account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True)
+    
+    recurrence_id = Column(Integer, ForeignKey("recurrence_templates.id"), nullable=True)
+
+class GlobalConfig(Base):
+    __tablename__ = "global_config"
+    
+    key = Column(String, primary_key=True)
+    value = Column(String)
+
+class Category(Base):
+    __tablename__ = "categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+    type = Column(String) # For grouping: Dépenses fixes, Dépenses variables, Recettes, Neutre
+
+class RecurrenceTemplate(Base):
+    __tablename__ = "recurrence_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    description = Column(String)
+    amount = Column(Float)
+    type = Column(String)
+    category = Column(String, nullable=True)
+    frequency = Column(String) # "Monthly", "Yearly", etc.
+    day_of_month = Column(Integer, nullable=True)
+    month_of_year = Column(Integer, nullable=True) # for yearly
+    
+    from_account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True)
+    to_account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True)
+
+class Budget(Base):
+    __tablename__ = "budgets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    category_name = Column(String, unique=True, nullable=False)
+    monthly_amount = Column(Float, nullable=False)
+    period = Column(String, default="monthly")  # monthly / yearly
