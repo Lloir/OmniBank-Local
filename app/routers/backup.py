@@ -9,7 +9,7 @@ import tempfile
 import shutil
 from datetime import datetime
 
-from app.database import get_db, engine
+from app.database import get_db, engine, DATA_DIR, DB_PATH
 
 router = APIRouter(prefix="/api/backup", tags=["backup"])
 
@@ -20,8 +20,8 @@ async def download_backup(db: Session = Depends(get_db)):
     tmp_path = tmp_file.name
     tmp_file.close()
     
-    db_path = "data/omnibank.db"
-    attachments_dir = "data/uploads"
+    db_path = DB_PATH
+    attachments_dir = os.path.join(DATA_DIR, "uploads")
     
     try:
         with zipfile.ZipFile(tmp_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -70,11 +70,10 @@ async def upload_backup(file: UploadFile = File(...)):
         engine.dispose()
         
         # Extract everything into data folder
-        data_dir = "data"
         with zipfile.ZipFile(tmp_path, 'r') as zip_ref:
             if "omnibank.db" not in zip_ref.namelist():
                 raise HTTPException(status_code=400, detail="Le backup ne contient pas omnibank.db.")
-            zip_ref.extractall(data_dir)
+            zip_ref.extractall(DATA_DIR)
             
         return {"ok": True, "message": "Backup restauré avec succès."}
     except Exception as e:

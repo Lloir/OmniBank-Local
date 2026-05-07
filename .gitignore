@@ -29,3 +29,18 @@ scratch/
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Node.js
+node_modules/
+package-lock.json
+
+# PyInstaller
+dist/
+build/
+*.spec
+
+# Tauri
+src-tauri/target/
+src-tauri/bin/
+src-tauri/.tauri-private-key
+

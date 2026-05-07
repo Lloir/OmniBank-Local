@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "notes": "Version initiale d'OmniBank Desktop.",
+  "pub_date": "2026-05-07T00:00:00Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "",
+      "url": "https://github.com/Aschefr/OmniBank-Local/releases/download/v1.0.0/OmniBank_1.0.0_x64_fr-FR.msi"
+    }
+  }
+}

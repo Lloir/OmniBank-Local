@@ -1,11 +1,26 @@
 import os
+import sys
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./data/omnibank.db")
 
-# Ensure data directory exists
-os.makedirs(os.path.dirname(DATABASE_URL.replace("sqlite:///", "")), exist_ok=True)
+def get_data_dir():
+    """Resolve the user data directory.
+    - In production (PyInstaller): %APPDATA%/OmniBank/
+    - In development: ./data/
+    """
+    if getattr(sys, 'frozen', False):
+        # Running as PyInstaller bundle — store data in APPDATA
+        base = os.path.join(os.environ.get('APPDATA', '.'), 'OmniBank')
+    else:
+        base = os.path.join(os.path.abspath('.'), 'data')
+    os.makedirs(base, exist_ok=True)
+    return base
+
+
+DATA_DIR = get_data_dir()
+DB_PATH = os.path.join(DATA_DIR, 'omnibank.db')
+DATABASE_URL = os.environ.get("DATABASE_URL", f"sqlite:///{DB_PATH}")
 
 engine = create_engine(
     DATABASE_URL, connect_args={"check_same_thread": False}
@@ -13,6 +28,7 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
 
 def get_db():
     db = SessionLocal()

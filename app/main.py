@@ -1,23 +1,36 @@
+import sys
+import os
+import multiprocessing
 from fastapi import FastAPI, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-import os
 
-from app.database import engine, Base
+from app.database import engine, Base, DATA_DIR
 from app.init_data import init_db
 import app.models # Important: load models before create_all
+
+
+def resource_path(relative_path):
+    """Get absolute path to bundled resource (PyInstaller-aware)."""
+    if getattr(sys, 'frozen', False):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath('.'), relative_path)
+
 
 # Create tables if they don't exist + run idempotent migrations
 init_db()
 
 app = FastAPI(title="OmniBank Local")
 
-# Mount static files
-import os
-os.makedirs("static", exist_ok=True)
-os.makedirs("data/uploads", exist_ok=True)
-app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/data/uploads", StaticFiles(directory="data/uploads"), name="uploads")
+# Mount static files from bundled resources
+static_dir = resource_path("static")
+os.makedirs(static_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+# Mount user uploads from DATA_DIR (persisted in %APPDATA%)
+uploads_dir = os.path.join(DATA_DIR, "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/data/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 from app.routers import (
     transactions,
@@ -45,19 +58,26 @@ app.include_router(csv_manager.router)
 app.include_router(ai_helpers.router)
 app.include_router(budgets.router)
 
-from fastapi.responses import FileResponse
 
 @app.get("/")
 def serve_spa():
-    return FileResponse("static/index.html")
+    return FileResponse(os.path.join(resource_path("static"), "index.html"))
+
 
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}
 
+
 @app.post("/api/upload")
 async def upload_file(file: UploadFile = File(...)):
-    file_location = f"data/uploads/{file.filename}"
+    file_location = os.path.join(uploads_dir, file.filename)
     with open(file_location, "wb+") as file_object:
         file_object.write(file.file.read())
-    return {"path": file_location}
+    return {"path": f"data/uploads/{file.filename}"}
+
+
+if __name__ == "__main__":
+    multiprocessing.freeze_support()
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8434, log_level="info")
