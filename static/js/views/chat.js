@@ -15,7 +15,7 @@ window.ChatView = {
                 </div>
             </div>
             
-            <div style="display: flex; flex-direction: column; height: calc(100vh - 150px); background: var(--bg-surface); border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); overflow: hidden;">
+            <div class="chat-container" style="display: flex; flex-direction: column; height: calc(100vh - 150px); background: var(--bg-surface); border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); overflow: hidden;">
                 
                 <div id="chatMessages" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;">
                     <div style="text-align: center; color: var(--text-muted); font-size: 12px; margin-bottom: 10px;">

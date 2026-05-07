@@ -9,7 +9,7 @@ window.AccountsView = {
             
             <div style="margin-bottom: 20px; background: var(--bg-surface); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
                 <h3>Nouveau Compte</h3>
-                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <div class="accounts-add-form" style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
                     <input type="text" id="acc_name" class="inline-input" placeholder="Nom du compte" style="border:1px solid var(--border-color); padding: 5px; flex: 2;">
                     <input type="text" id="acc_type" class="inline-input" placeholder="Type (Ex: Courant, Livret...)" style="border:1px solid var(--border-color); padding: 5px; flex: 1;">
                     <input type="number" id="acc_balance" class="inline-input" placeholder="Solde Initial (€)" step="0.01" style="border:1px solid var(--border-color); padding: 5px; flex: 1;">

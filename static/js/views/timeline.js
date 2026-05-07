@@ -15,6 +15,7 @@ window.TimelineView = {
                         <label><input type="checkbox" id="chk_col_cat" onchange="window.TimelineView.toggleCol('cat')"> Catégorie</label>
                         <label><input type="checkbox" id="chk_col_amount" onchange="window.TimelineView.toggleCol('amount')"> Montant</label>
                         <label><input type="checkbox" id="chk_col_recon" onchange="window.TimelineView.toggleCol('recon')"> Rapproché</label>
+                        <label><input type="checkbox" id="chk_col_budget" onchange="window.TimelineView.toggleCol('budget')"> Enveloppe</label>
                         <label><input type="checkbox" id="chk_col_depuis" onchange="window.TimelineView.toggleCol('depuis')"> Depuis</label>
                         <label><input type="checkbox" id="chk_col_vers" onchange="window.TimelineView.toggleCol('vers')"> Vers</label>
                         <label><input type="checkbox" id="chk_col_recurrence" onchange="window.TimelineView.toggleCol('recurrence')"> Répétition</label>
@@ -28,19 +29,19 @@ window.TimelineView = {
             </div>
             <div id="timelineHeader" class="view-header" style="position: sticky; top: -32px; z-index: 10; background-color: var(--bg-base); padding: 32px 0 15px 0; margin-top: -32px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <h2 style="margin:0;">🏠 <span data-i18n="nav_timeline">Dashboard</span></h2>
-                <div style="display:flex; gap:10px; flex:1; max-width:600px; justify-content:flex-end;">
-                    <input type="text" id="timelineSearch" class="inline-input" placeholder="Rechercher..." style="max-width: 200px;" oninput="window.TimelineView.applyFilters()">
-                    <select id="timelineTypeFilter" class="inline-input" style="width: 140px;" onchange="window.TimelineView.applyFilters()">
+                <div class="history-filters" style="display:flex; gap:8px; flex:1; max-width:600px; justify-content:flex-end; flex-wrap:wrap;">
+                    <input type="text" id="timelineSearch" class="inline-input" placeholder="Rechercher..." style="min-width:0; flex:1; max-width: 200px;" oninput="window.TimelineView.applyFilters()">
+                    <select id="timelineTypeFilter" class="inline-input" style="min-width:0; flex:1;" onchange="window.TimelineView.applyFilters()">
                         <option value="">Tous les types</option>
                         <option value="Dépenses fixes">Dépenses fixes</option>
                         <option value="Dépenses variables">Dépenses variables</option>
                         <option value="Recettes">Recettes</option>
                         <option value="Transfert">Transfert</option>
                     </select>
-                    <select id="timelineCategoryFilter" class="inline-input" style="width: 140px;" onchange="window.TimelineView.applyFilters()">
+                    <select id="timelineCategoryFilter" class="inline-input" style="min-width:0; flex:1;" onchange="window.TimelineView.applyFilters()">
                         <option value="">Toutes les catégories</option>
                     </select>
-                    <div style="display:flex; align-items:center; gap:8px; margin-left:10px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
                         <span style="font-size:12px; font-weight:600; color:var(--text-muted); white-space:nowrap;" data-i18n="filter_attachments">Pièces jointes</span>
                         <label class="toggle-switch" style="flex-shrink: 0;" title="Uniquement avec pièces jointes">
                             <input type="checkbox" id="timelineAttachmentFilter" onchange="window.TimelineView.applyFilters()">
@@ -48,14 +49,14 @@ window.TimelineView = {
                         </label>
                     </div>
                 </div>
-                <div style="display:flex; gap:10px;">
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <button class="btn btn-secondary" onclick="document.getElementById('timelineColsModal').style.display='flex'">⚙️ Colonnes</button>
                     <button class="btn btn-secondary" onclick="window.ImportWizard.open()">📥 Importer (CSV/XLSX)</button>
                     <button class="btn btn-primary" onclick="window.TimelineView.showAddRow()">+ Ajouter</button>
                 </div>
             </div>
             <div style="padding-bottom: 20px;">
-                <table class="data-table timeline-table">
+                <table class="data-table timeline-table mobile-card-table">
                     <thead>
                         <tr>
                             <th class="col-dateSaisie" style="width: 100px;">Date Saisie</th>
@@ -65,6 +66,7 @@ window.TimelineView = {
                             <th class="col-cat" style="width: 160px; white-space: nowrap;">Catégorie</th>
                             <th class="col-amount" style="width: 100px;">Montant</th>
                             <th class="col-recon" style="width: 120px;">Rapproché</th>
+                            <th class="col-budget" style="width: 110px;">Enveloppe</th>
                             <th class="col-depuis" style="width: 120px;">Depuis</th>
                             <th class="col-vers" style="width: 120px;">Vers</th>
                             <th class="col-recurrence" style="width: 100px;">Répétition</th>
@@ -81,13 +83,16 @@ window.TimelineView = {
         `;
     },
 
+    transactions: [],
+    budgetsMap: {}, // id -> name, for budget column display
+
     async init() {
         this.applyColSettings();
         await this.loadData();
     },
 
     getColSettings() {
-        const def = { dateSaisie: false, date: true, desc: true, type: false, cat: true, amount: true, recon: true, depuis: false, vers: false, recurrence: false, slip: false, attachments: false };
+        const def = { dateSaisie: false, date: true, desc: true, type: false, cat: true, amount: true, recon: true, budget: false, depuis: false, vers: false, recurrence: false, slip: false, attachments: false };
         try {
             const saved = localStorage.getItem('timeline_cols');
             return saved ? { ...def, ...JSON.parse(saved) } : def;
@@ -174,6 +179,13 @@ window.TimelineView = {
                     categories.map(c => `<option value="${c}">${c}</option>`).join('');
                 catSelect.value = currentVal;
             }
+
+            // Load budgets map for the budget column
+            try {
+                const budgets = await API.get('/api/budgets/');
+                this.budgetsMap = {};
+                budgets.forEach(b => { this.budgetsMap[b.id] = b.name; });
+            } catch(e) { this.budgetsMap = {}; }
 
             this.renderTable();
         } catch (e) {
@@ -266,25 +278,28 @@ window.TimelineView = {
 
             return `
             <tr data-id="${tx.id}" class="${rowClass}" ${idAttr}>
-                <td class="col-dateSaisie">${formatDate(tx.date_saisie)}</td>
-                <td class="col-date">${formatDate(tx.date_operation)}</td>
-                <td class="col-desc"><strong>${tx.description}</strong></td>
-                <td class="col-type">${tx.type || '-'}</td>
-                <td class="col-cat" style="white-space: nowrap;"><span style="background: var(--bg-base); padding: 2px 6px; border-radius: 4px; font-size: 11px;">${tx.category || '-'}</span></td>
-                <td class="col-amount">
+                <td class="col-dateSaisie" data-label="Date Saisie">${formatDate(tx.date_saisie)}</td>
+                <td class="col-date" data-label="Date Op.">${formatDate(tx.date_operation)}</td>
+                <td class="col-desc" data-label="Description"><strong>${tx.description}</strong></td>
+                <td class="col-type" data-label="Type">${tx.type || '-'}</td>
+                <td class="col-cat" data-label="Catégorie" style="white-space: nowrap;"><span style="background: var(--bg-base); padding: 2px 6px; border-radius: 4px; font-size: 11px;">${tx.category || '-'}</span></td>
+                <td class="col-amount" data-label="Montant">
                     <span class="privacy-blur" style="color: ${amountColor}; font-weight: bold;">${formatCurrency(tx.amount)}</span>
                 </td>
-                <td class="col-recon" style="text-align: center;">
+                <td class="col-recon" data-label="Rapproché" style="text-align: center;">
                     ${reconcileHTML}
                 </td>
-                <td class="col-depuis">${depuis}</td>
-                <td class="col-vers">${vers}</td>
-                <td class="col-recurrence">${recText}</td>
-                <td class="col-slip">${tx.check_slip_number || '-'}</td>
-                <td class="col-attachments">${attachHtml}</td>
-                <td class="col-actions" style="display: flex; gap: 5px; flex-wrap: nowrap; justify-content: flex-end;">
-                    <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="window.TimelineView.edit(${tx.id})">✏️ Éditer</button>
-                    <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="window.TimelineView.delete(${tx.id})">X</button>
+                <td class="col-budget" data-label="Enveloppe">${tx.budget_id && window.TimelineView.budgetsMap[tx.budget_id] ? `<span onclick="window.app.loadView('budgets')" style="background:rgba(99,102,241,0.15);color:#818cf8;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap;cursor:pointer;" title="Voir l'enveloppe">🗂️ ${window.TimelineView.budgetsMap[tx.budget_id]}</span>` : '<span style="color:var(--text-muted);font-size:11px;">—</span>'}</td>
+                <td class="col-depuis" data-label="Depuis">${depuis}</td>
+                <td class="col-vers" data-label="Vers">${vers}</td>
+                <td class="col-recurrence" data-label="Répétition">${recText}</td>
+                <td class="col-slip" data-label="N° Bordereau">${tx.check_slip_number || '-'}</td>
+                <td class="col-attachments" data-label="P. Jointes">${attachHtml}</td>
+                <td class="col-actions mobile-card-actions">
+                    <div style="display:flex;gap:4px;align-items:center;justify-content:flex-end;">
+                        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;white-space:nowrap;" onclick="window.TimelineView.edit(${tx.id})">✏️ Éditer</button>
+                        <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="window.TimelineView.delete(${tx.id})">✕</button>
+                    </div>
                 </td>
             </tr>
             `;

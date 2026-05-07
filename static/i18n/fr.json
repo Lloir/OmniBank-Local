@@ -26,5 +26,16 @@
     "sys_prompt_categorizer": "Tu es un classificateur de dépenses. Je vais te donner une liste de catégories existantes et une description de transaction. Tu dois choisir la catégorie la plus appropriée. Retourne UNIQUEMENT un objet JSON avec la clé 'category' contenant le nom exact de la catégorie choisie. Si aucune ne correspond bien, retourne 'category': null. NE RENVOIE AUCUN TEXTE AVANT OU APRÈS LE JSON.",
     "nav_trends": "Tendances",
     "filter_attachments": "Pièces jointes",
-    "badge_closed": "Fermé"
+    "badge_closed": "Fermé",
+    "config_ai_title": "🤖 Configuration Ollama (Assistant IA)",
+    "config_ai_enable": "Activer l'IA",
+    "config_ai_url": "URL Ollama",
+    "config_ai_model": "Modèle Sélectionné",
+    "config_ai_temp": "Température (Créativité)",
+    "config_ai_ctx": "Taille du Contexte",
+    "config_ai_test_btn": "🔄 Tester & Récupérer Modèles",
+    "config_opt_bimonthly": "Activer la récurrence bi-mensuelle",
+    "config_opt_attachments": "Activer les documents joints (Upload de fichiers)",
+    "config_opt_check_slips": "Activer la saisie des numéros de bordereaux de chèques",
+    "alert_restore_backup": "⚠️ ATTENTION : La restauration écrasera la base de données actuelle de manière irréversible. Êtes-vous sûr de vouloir continuer ?"
 }

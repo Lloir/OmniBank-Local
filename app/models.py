@@ -41,6 +41,9 @@ class Transaction(Base):
     to_account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True)
     
     recurrence_id = Column(Integer, ForeignKey("recurrence_templates.id"), nullable=True)
+    
+    # Budget project assignment (optional — for project-type envelopes)
+    budget_id = Column(Integer, ForeignKey("budgets.id"), nullable=True)
 
 class GlobalConfig(Base):
     __tablename__ = "global_config"
@@ -74,6 +77,17 @@ class Budget(Base):
     __tablename__ = "budgets"
 
     id = Column(Integer, primary_key=True, index=True)
-    category_name = Column(String, unique=True, nullable=False)
+    name = Column(String, nullable=False)                    # Free label (ex: "Vacances St Malo")
     monthly_amount = Column(Float, nullable=False)
-    period = Column(String, default="monthly")  # monthly / yearly
+    period = Column(String, default="monthly")               # monthly / yearly
+    is_project = Column(Boolean, default=False)              # True = tracked via budget_id on transactions
+    is_closed = Column(Boolean, default=False)               # Manual closure by user
+
+class BudgetCategory(Base):
+    """Many-to-many: each row links a budget to one category name."""
+    __tablename__ = "budget_categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    budget_id = Column(Integer, ForeignKey("budgets.id"), nullable=False)
+    category_name = Column(String, nullable=False)
+

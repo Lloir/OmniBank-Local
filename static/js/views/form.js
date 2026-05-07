@@ -2,6 +2,7 @@ window.FormView = {
     categories: [],
     accounts: [],
     descriptions: [],
+    projectBudgets: [],
     currentTxId: null,
     currentTxBase: null,
 
@@ -9,6 +10,24 @@ window.FormView = {
         await this.loadAccounts();
         await this.loadCategories();
         await this.loadDescriptions();
+        await this.loadProjectBudgets();
+    },
+
+    async loadProjectBudgets() {
+        try {
+            const all = await API.get('/api/budgets/');
+            this.projectBudgets = all.filter(b => b.is_project && !b.is_closed);
+            const container = document.getElementById('op_budget_container');
+            const select = document.getElementById('op_budget_id');
+            if (!container || !select) return;
+            if (this.projectBudgets.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+            container.style.display = 'block';
+            select.innerHTML = '<option value="">-- Aucune enveloppe --</option>' +
+                this.projectBudgets.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+        } catch(e) { /* budgets endpoint not critical */ }
     },
 
     async open() {
@@ -32,6 +51,8 @@ window.FormView = {
         document.getElementById('op_attachments_list').innerHTML = '';
         document.getElementById('op_rec_day_1').value = '';
         document.getElementById('op_rec_day_2').value = '';
+        const budgetSel = document.getElementById('op_budget_id');
+        if (budgetSel) budgetSel.value = '';
         
         this.applyConfigVisibility();
         
@@ -94,6 +115,10 @@ window.FormView = {
         if (tx.category) {
             document.getElementById('op_category').value = tx.category;
         }
+
+        // Pre-fill project budget if assigned
+        const budgetSel = document.getElementById('op_budget_id');
+        if (budgetSel) budgetSel.value = tx.budget_id || '';
 
         document.getElementById('operationModal').style.display = 'flex';
     },
@@ -444,7 +469,8 @@ window.FormView = {
             from_account_id: fromAcc ? parseInt(fromAcc) : null,
             to_account_id: toAcc ? parseInt(toAcc) : null,
             check_slip_number: document.getElementById('op_check_slip').value || null,
-            attachments: document.getElementById('op_attachments').value || null
+            attachments: document.getElementById('op_attachments').value || null,
+            budget_id: (() => { const v = document.getElementById('op_budget_id')?.value; return v ? parseInt(v) : null; })()
         };
 
         if (this.currentTxId) {

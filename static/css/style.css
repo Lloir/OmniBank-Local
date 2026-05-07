@@ -545,14 +545,186 @@ body.privacy-mode #valNextPayAmount:hover {
         flex-direction: column;
     }
     
+    .app-main {
+        padding: 15px !important;
+    }
+
     .main-nav {
         display: none; /* Hide top nav if using sidebar exclusively, or adapt */
     }
-    
-    .table-responsive {
+
+    .mobile-nav {
+        display: flex !important;
+    }
+
+    .flex-row-mobile-col {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    .table-responsive, .data-table {
         width: 100%;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+    }
+
+    .data-table th, .data-table td {
+        padding: 8px 12px;
+    }
+
+    /* Card layout for operation table */
+    .mobile-card-table,
+    .mobile-card-table thead,
+    .mobile-card-table tbody,
+    .mobile-card-table th,
+    .mobile-card-table td,
+    .mobile-card-table tr {
+        display: block;
+        width: 100%;
+        white-space: normal !important;
+    }
+
+    .mobile-card-table thead {
+        display: none; /* hide header row */
+    }
+
+    .mobile-card-table tbody tr {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        margin-bottom: 10px;
+        padding: 12px 14px;
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+
+    .mobile-card-table tbody tr.reconciled-row {
+        opacity: 0.65;
+    }
+
+    .mobile-card-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 0;
+        border: none;
+        font-size: 13px;
+        border-bottom: 1px solid transparent;
+    }
+
+    .mobile-card-table td:not(:last-child) {
+        border-bottom: 1px dashed var(--border-color);
+        padding-bottom: 6px;
+        margin-bottom: 4px;
+    }
+
+    /* Hide low-priority columns on mobile cards */
+    .mobile-card-table td[data-label="Date Saisie"],
+    .mobile-card-table td[data-label="Rapproché le"],
+    .mobile-card-table td[data-label="Vers"],
+    .mobile-card-table td[data-label="Répétition"],
+    .mobile-card-table td[data-label="N° Bordereau"],
+    .mobile-card-table td[data-label="P. Jointes"] {
+        display: none !important;
+    }
+
+    .mobile-card-table td::before {
+        content: attr(data-label);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        letter-spacing: 0.4px;
+        flex-shrink: 0;
+        margin-right: 10px;
+    }
+
+    /* Description takes full row - no label side by side */
+    .mobile-card-table td[data-label="Description"] {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+
+    .mobile-card-table td[data-label="Description"]::before {
+        font-size: 9px;
+    }
+
+    .mobile-card-table .mobile-card-actions {
+        justify-content: flex-end;
+        gap: 8px;
+        flex-direction: row;
+        padding-top: 8px;
+        border-bottom: none !important;
+    }
+
+    .mobile-card-table .mobile-card-actions::before {
+        display: none;
+    }
+
+    /* History filters wrap on mobile */
+    .history-filters {
+        flex-wrap: wrap;
+        max-width: 100% !important;
+    }
+
+    .history-filters input,
+    .history-filters select {
+        flex: 1 1 140px;
+        min-width: 0;
+    }
+
+    .modal {
+        min-width: 90vw;
+        max-width: 95vw;
+        padding: 20px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .op-modal-grid, .modal > div {
+        display: flex;
+        flex-direction: column;
+        gap: 15px !important;
+    }
+
+    .modal-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .modal-actions .btn {
+        width: 100%;
+    }
+
+    /* ── Comptes & Catégories: form row → stack ── */
+    .accounts-add-form,
+    .categories-add-form {
+        flex-direction: column !important;
+    }
+
+    /* ── Chat: clamp height correctly on mobile ── */
+    .chat-container {
+        height: calc(100dvh - 120px) !important;
+    }
+
+    /* ── Récurrences: grid → single col ── */
+    .rec-instance-row {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* ── Budgets: add form grid → single col ── */
+    .budget-add-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* ── Generic: any inline flex form row stacks ── */
+    .form-row-inline {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    .form-row-inline > * {
+        width: 100% !important;
+        max-width: 100% !important;
     }
 }
 .chat-bubble pre { background: rgba(0,0,0,0.05); padding: 8px; border-radius: 4px; overflow-x: auto; margin-bottom: 8px; }
@@ -601,4 +773,14 @@ select.inline-input:focus option:checked {
 @keyframes typing {
     0%, 80%, 100% { transform: scale(0); }
     40% { transform: scale(1); }
+}
+
+
+/* AI Loading Animation */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.animate-spin {
+    animation: spin 1s linear infinite;
 }

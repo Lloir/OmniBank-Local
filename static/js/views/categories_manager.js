@@ -9,7 +9,7 @@ window.CategoriesView = {
             
             <div style="margin-bottom: 20px; background: var(--bg-surface); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
                 <h3>Nouvelle Catégorie</h3>
-                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <div class="categories-add-form" style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
                     <input type="text" id="cat_name" class="inline-input" placeholder="Nom de la catégorie" style="border:1px solid var(--border-color); padding: 5px;">
                     <select id="cat_type" style="background: var(--bg-base); color: var(--text-main); border: 1px solid var(--border-color); padding: 5px;">
                         <option value="Dépenses fixes">Dépenses fixes</option>

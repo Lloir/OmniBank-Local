@@ -10,14 +10,14 @@ window.ConfigView = {
             
             <div style="margin-bottom: 20px; background: var(--bg-surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 15px;">
-                    <h3 style="display:flex; align-items:center; gap:8px; margin:0;">🤖 Configuration Ollama (Assistant IA)</h3>
+                    <h3 style="display:flex; align-items:center; gap:8px; margin:0;" data-i18n="config_ai_title">🤖 Configuration Ollama (Assistant IA)</h3>
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 500;">
                         <div style="position: relative; width: 40px; height: 24px;">
                             <input type="checkbox" id="conf_enable_ai" class="global-toggle" style="opacity: 0; width: 0; height: 0; position: absolute;" onchange="window.ConfigView.toggleAI(this.checked); window.ConfigView.save();">
                             <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .4s; border-radius: 34px;"></span>
                             <span class="slider-knob" style="position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
                         </div>
-                        Activer l'IA
+                        <span data-i18n="config_ai_enable">Activer l'IA</span>
                     </label>
                 </div>
                 
@@ -26,19 +26,19 @@ window.ConfigView = {
                         Renseignez l'URL de votre serveur Ollama local (ex: http://localhost:11434 ou http://192.168.1.50:11434).
                     </p>
                 
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div class="flex-row-mobile-col" style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <div style="flex: 1;">
-                        <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">URL Ollama</label>
+                        <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;" data-i18n="config_ai_url">URL Ollama</label>
                         <input type="text" id="conf_ollama_url" class="inline-input" placeholder="http://127.0.0.1:11434" style="border: 1px solid var(--border-color); padding: 8px; margin-top: 5px;" onchange="window.ConfigView.save()">
                     </div>
                     <div style="display: flex; align-items: flex-end;">
-                        <button class="btn btn-secondary" onclick="window.ConfigView.fetchModels()" style="height: 35px;">🔄 Tester & Récupérer Modèles</button>
+                        <button class="btn btn-secondary" onclick="window.ConfigView.fetchModels()" style="height: 35px;" data-i18n="config_ai_test_btn">🔄 Tester & Récupérer Modèles</button>
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div class="flex-row-mobile-col" style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <div style="flex: 1;">
-                        <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Modèle Sélectionné</label>
+                        <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;" data-i18n="config_ai_model">Modèle Sélectionné</label>
                         <select id="conf_ollama_model" class="inline-input" style="border: 1px solid var(--border-color); padding: 8px; margin-top: 5px;" onchange="window.ConfigView.save()">
                             <option value="">-- Aucun modèle chargé --</option>
                         </select>
@@ -46,9 +46,9 @@ window.ConfigView = {
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 20px; margin-bottom: 15px;">
+                <div class="flex-row-mobile-col" style="display: flex; gap: 20px; margin-bottom: 15px;">
                     <div style="flex: 1;">
-                        <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Température (Créativité)</label>
+                        <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;" data-i18n="config_ai_temp">Température (Créativité)</label>
                         <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
                             <input type="range" id="conf_ollama_temp_slider" min="0" max="1" step="0.1" value="0.3" style="flex: 1;" oninput="document.getElementById('conf_ollama_temp').value = this.value" onchange="window.ConfigView.save()">
                             <input type="number" id="conf_ollama_temp" class="inline-input" min="0" max="1" step="0.1" value="0.3" style="width: 60px; border: 1px solid var(--border-color); padding: 5px; text-align: center;" oninput="document.getElementById('conf_ollama_temp_slider').value = this.value" onchange="window.ConfigView.save()">
@@ -56,7 +56,7 @@ window.ConfigView = {
                         <p style="font-size: 10px; color: var(--text-muted); margin-top: 5px;">Basse (0.1-0.3) pour l'analyse stricte, Haute (0.7-1.0) pour la conversation.</p>
                     </div>
                     <div style="flex: 1;">
-                        <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Taille du Contexte</label>
+                        <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;" data-i18n="config_ai_ctx">Taille du Contexte</label>
                         <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 5px;">
                             <input type="number" id="conf_ollama_ctx" class="inline-input" value="4096" style="border: 1px solid var(--border-color); padding: 8px;" onchange="window.ConfigView.save()">
                             <div style="display: flex; gap: 5px;">
@@ -85,7 +85,7 @@ window.ConfigView = {
                             <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .4s; border-radius: 34px;"></span>
                             <span class="slider-knob" style="position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
                         </div>
-                        Activer la récurrence bi-mensuelle
+                        <span data-i18n="config_opt_bimonthly">Activer la récurrence bi-mensuelle</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 500;">
                         <div style="position: relative; width: 40px; height: 24px;">
@@ -93,7 +93,7 @@ window.ConfigView = {
                             <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .4s; border-radius: 34px;"></span>
                             <span class="slider-knob" style="position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
                         </div>
-                        Activer les documents joints (Upload de fichiers)
+                        <span data-i18n="config_opt_attachments">Activer les documents joints (Upload de fichiers)</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 500;">
                         <div style="position: relative; width: 40px; height: 24px;">
@@ -101,7 +101,7 @@ window.ConfigView = {
                             <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .4s; border-radius: 34px;"></span>
                             <span class="slider-knob" style="position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
                         </div>
-                        Activer la saisie des numéros de bordereaux de chèques
+                        <span data-i18n="config_opt_check_slips">Activer la saisie des numéros de bordereaux de chèques</span>
                     </label>
                 </div>
                 <style>
@@ -130,6 +130,12 @@ window.ConfigView = {
                     <!-- Backup -->
                     <button class="btn btn-secondary" onclick="window.open('/api/backup/download', '_blank')" style="display: flex; align-items: center; gap: 5px;">
                         💾 <span data-i18n="btn_download_backup">Télécharger Sauvegarde Complète (ZIP)</span>
+                    </button>
+
+                    <!-- Restore Backup -->
+                    <input type="file" id="restoreBackupInput" accept=".zip" style="display: none;" onchange="window.ConfigView.restoreBackup(event)">
+                    <button class="btn btn-warning" onclick="document.getElementById('restoreBackupInput').click()" style="display: flex; align-items: center; gap: 5px; background-color: var(--color-expense); color: white;">
+                        📂 <span data-i18n="btn_restore_backup">Restaurer Sauvegarde (ZIP)</span>
                     </button>
 
                     <!-- Clear DB -->
@@ -315,6 +321,40 @@ window.ConfigView = {
                 console.error(e);
                 showInlineMessage("Info", "Erreur lors de la suppression.");
             }
+        }
+    },
+
+    async restoreBackup(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const confirmMsg = (window.i18n && window.i18n.t) ? window.i18n.t('alert_restore_backup') : "⚠️ ATTENTION : La restauration écrasera la base de données actuelle de manière irréversible. Êtes-vous sûr de vouloir continuer ?";
+        if (!await showInlineConfirm("Restauration critique", confirmMsg)) {
+            event.target.value = '';
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await fetch('/api/backup/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Upload failed");
+            }
+
+            showInlineMessage("Succès", "Backup restauré avec succès. L'application va redémarrer.");
+            setTimeout(() => window.location.reload(), 1500);
+        } catch (e) {
+            console.error(e);
+            showInlineMessage("Erreur", "La restauration a échoué : " + e.message);
+        } finally {
+            event.target.value = '';
         }
     }
 };

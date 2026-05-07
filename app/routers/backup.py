@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
 from fastapi.background import BackgroundTasks
 from starlette.background import BackgroundTask
@@ -6,9 +6,10 @@ from sqlalchemy.orm import Session
 import os
 import zipfile
 import tempfile
+import shutil
 from datetime import datetime
 
-from app.database import get_db
+from app.database import get_db, engine
 
 router = APIRouter(prefix="/api/backup", tags=["backup"])
 
@@ -20,7 +21,7 @@ async def download_backup(db: Session = Depends(get_db)):
     tmp_file.close()
     
     db_path = "data/omnibank.db"
-    attachments_dir = "data/attachments"
+    attachments_dir = "data/uploads"
     
     try:
         with zipfile.ZipFile(tmp_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -46,3 +47,41 @@ async def download_backup(db: Session = Depends(get_db)):
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
         raise HTTPException(status_code=500, detail=f"Backup failed: {str(e)}")
+
+@router.post("/upload")
+async def upload_backup(file: UploadFile = File(...)):
+    if not file.filename.endswith('.zip'):
+        raise HTTPException(status_code=400, detail="Le fichier doit être une archive ZIP.")
+    
+    tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.zip')
+    tmp_path = tmp_file.name
+    tmp_file.close()
+    
+    try:
+        # Save uploaded file
+        with open(tmp_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # Verify it's a valid zip
+        if not zipfile.is_zipfile(tmp_path):
+            raise HTTPException(status_code=400, detail="Archive ZIP invalide.")
+            
+        # Close all active database connections to release locks
+        engine.dispose()
+        
+        # Extract everything into data folder
+        data_dir = "data"
+        with zipfile.ZipFile(tmp_path, 'r') as zip_ref:
+            if "omnibank.db" not in zip_ref.namelist():
+                raise HTTPException(status_code=400, detail="Le backup ne contient pas omnibank.db.")
+            zip_ref.extractall(data_dir)
+            
+        return {"ok": True, "message": "Backup restauré avec succès."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur de restauration: {str(e)}")
+    finally:
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except:
+                pass

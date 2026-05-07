@@ -7,24 +7,24 @@ window.AllOperationsView = {
         return `
             <div id="historyHeader" class="view-header" style="position: sticky; top: -32px; z-index: 10; background-color: var(--bg-base); padding: 32px 0 15px 0; margin-top: -32px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <h2 style="margin:0;">📋 <span data-i18n="nav_history">Historique</span></h2>
-                <div style="display:flex; gap:10px; flex:1; max-width:700px; justify-content:flex-end;">
-                    <input type="text" id="historySearch" class="inline-input" placeholder="Rechercher..." style="max-width: 180px;" oninput="window.AllOperationsView.applyFilters()">
-                    <input type="month" id="historyMonthFilter" class="inline-input" style="width:155px;" onchange="window.AllOperationsView.applyFilters()" title="Filtrer par mois">
-                    <select id="historyTypeFilter" class="inline-input" style="width: 140px;" onchange="window.AllOperationsView.applyFilters()">
+                <div class="history-filters" style="display:flex; gap:8px; flex:1; max-width:700px; justify-content:flex-end; flex-wrap: wrap;">
+                    <input type="text" id="historySearch" class="inline-input" placeholder="Rechercher..." style="min-width:0; flex:1; max-width: 180px;" oninput="window.AllOperationsView.applyFilters()">
+                    <input type="month" id="historyMonthFilter" class="inline-input" style="min-width:0; flex:1;" onchange="window.AllOperationsView.applyFilters()" title="Filtrer par mois">
+                    <select id="historyTypeFilter" class="inline-input" style="min-width:0; flex:1;" onchange="window.AllOperationsView.applyFilters()">
                         <option value="">Tous les types</option>
                         <option value="Dépenses fixes">Dépenses fixes</option>
                         <option value="Dépenses variables">Dépenses variables</option>
                         <option value="Recettes">Recettes</option>
                         <option value="Transfert">Transfert</option>
                     </select>
-                    <select id="historyCategoryFilter" class="inline-input" style="width: 140px;" onchange="window.AllOperationsView.applyFilters()">
+                    <select id="historyCategoryFilter" class="inline-input" style="min-width:0; flex:1;" onchange="window.AllOperationsView.applyFilters()">
                         <option value="">Toutes les catégories</option>
                     </select>
                 </div>
                 <button class="btn btn-primary" onclick="window.TimelineView.showAddRow()">+ Ajouter</button>
             </div>
             <div style="padding-bottom: 20px;">
-                <table class="data-table">
+                <table class="data-table mobile-card-table">
                     <thead>
                         <tr>
                             <th style="min-width: 90px;">Date Saisie</th>
@@ -174,18 +174,18 @@ window.AllOperationsView = {
 
             return `
             <tr data-id="${tx.id}" class="${rowClass}" ${idAttr}>
-                <td>${formatDate(tx.date_saisie)}</td>
-                <td>${formatDate(tx.date_operation)}</td>
-                <td><strong>${tx.description}</strong></td>
-                <td>
+                <td data-label="Date Saisie">${formatDate(tx.date_saisie)}</td>
+                <td data-label="Date Op.">${formatDate(tx.date_operation)}</td>
+                <td data-label="Description"><strong>${tx.description}</strong></td>
+                <td data-label="Montant">
                     <span class="privacy-blur" style="color: ${amountColor}; font-weight: bold;">${formatCurrency(tx.amount)}</span>
                 </td>
-                <td>${tx.type}</td>
-                <td style="white-space: nowrap;"><span style="background: var(--bg-base); padding: 2px 6px; border-radius: 4px; font-size: 11px;">${tx.category || '-'}</span></td>
-                <td>${formatDate(tx.reconciliation_date) || '-'}</td>
-                <td>${depuis}</td>
-                <td>${vers}</td>
-                <td style="display: flex; gap: 5px; flex-wrap: nowrap; justify-content: flex-end;">
+                <td data-label="Type">${tx.type}</td>
+                <td data-label="Catégorie" style="white-space: nowrap;"><span style="background: var(--bg-base); padding: 2px 6px; border-radius: 4px; font-size: 11px;">${tx.category || '-'}</span></td>
+                <td data-label="Rapproché le">${formatDate(tx.reconciliation_date) || '-'}</td>
+                <td data-label="Depuis">${depuis}</td>
+                <td data-label="Vers">${vers}</td>
+                <td data-label="Actions" class="mobile-card-actions">
                     <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="window.AllOperationsView.edit(${tx.id})">✏️ Éditer</button>
                     <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="window.AllOperationsView.delete(${tx.id})">X</button>
                 </td>

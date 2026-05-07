@@ -187,7 +187,7 @@ window.RecurrenceView = {
             }
 
             return `
-            <div style="display: grid; grid-template-columns: 1fr 1fr 140px; gap: 10px; align-items: center; background: ${bg}; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); ${opClass}">
+            <div class="rec-instance-row" style="display: grid; grid-template-columns: 1fr 1fr 140px; gap: 10px; align-items: center; background: ${bg}; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); ${opClass}">
                 <input type="date" id="rec_date_${tx.id}" class="inline-input" value="${dateStr}" style="text-align: center;" onchange="window.RecurrenceView.markModified(${tx.id})" ${readonly}>
                 <input type="number" id="rec_amount_${tx.id}" class="inline-input" value="${tx.amount}" step="0.01" style="text-align: center;" onchange="window.RecurrenceView.markModified(${tx.id})" ${readonly}>
                 <div>${actionBtn}</div>

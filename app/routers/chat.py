@@ -14,6 +14,45 @@ from app.schemas.api_schemas import ChatMessage
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
+
+# ─── Shared Ollama helpers (importable by other routers) ──────────────────────
+
+def get_ollama_config(db: Session) -> dict:
+    """Return Ollama config dict with keys: enabled, url, model, temperature, num_ctx."""
+    def _val(key):
+        row = db.query(GlobalConfig).filter(GlobalConfig.key == key).first()
+        return row.value if row else None
+
+    enabled = _val("enable_ai") in ("true", "True", "1")
+    return {
+        "enabled": enabled,
+        "url": _val("ollama_url"),
+        "model": _val("ollama_model"),
+        "temperature": float(_val("ollama_temperature") or 0.3),
+        "num_ctx": int(_val("ollama_context") or 4096),
+    }
+
+
+def call_ollama_sync(prompt: str, cfg: dict) -> str:
+    """Blocking (sync) call to Ollama — use from non-async endpoints only."""
+    import httpx as _httpx
+    url = (cfg.get("url") or "").rstrip("/")
+    model = cfg.get("model") or ""
+    if not url or not model:
+        raise ValueError("Ollama URL ou modèle non configuré.")
+    resp = _httpx.post(
+        f"{url}/api/chat",
+        json={
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": False,
+            "options": {"temperature": cfg.get("temperature", 0.3), "num_ctx": cfg.get("num_ctx", 4096)},
+        },
+        timeout=120.0,
+    )
+    resp.raise_for_status()
+    return resp.json().get("message", {}).get("content", "")
+
 def get_net_worth_tool(db: Session) -> dict:
     return {
         "reconciled_net_worth_euros": get_net_worth(db, only_reconciled=True),

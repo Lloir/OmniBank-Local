@@ -67,6 +67,20 @@
 
         <div class="app-body">
             <aside class="app-sidebar" id="sidebar">
+                <nav class="mobile-nav" style="display: none; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 8px; color: var(--text-muted); font-size: 11px;">MENU</h3>
+                    <button data-view="dashboard" class="nav-btn active" style="text-align: left;">🏠 <span data-i18n="nav_dashboard">Dashboard</span></button>
+                    <button data-view="all_operations" class="nav-btn" style="text-align: left;">📋 <span data-i18n="nav_history">Historique</span></button>
+                    <button data-view="analytics" class="nav-btn" style="text-align: left;">📊 Synthèse</button>
+                    <button data-view="budgets" class="nav-btn" style="text-align: left;">🎯 Budgets</button>
+                    <button data-view="trends" class="nav-btn" style="text-align: left;">📉 <span data-i18n="nav_trends">Tendances</span></button>
+                    <button data-view="chat" class="nav-btn" style="text-align: left;">💬 <span data-i18n="nav_chat">Chat IA</span></button>
+                    <button data-view="recurrences" class="nav-btn" style="text-align: left;">🔄 <span data-i18n="nav_recurrences">Récurrences</span></button>
+                    <button data-view="categories" class="nav-btn" style="text-align: left;">🏷️ <span data-i18n="nav_categories">Catégories</span></button>
+                    <button data-view="accounts" class="nav-btn" style="text-align: left;">🏦 <span data-i18n="nav_accounts">Comptes</span></button>
+                    <button data-view="config" class="nav-btn" style="text-align: left;">⚙️ <span data-i18n="nav_configuration">Configuration</span></button>
+                </nav>
+
                 <div>
                     <h3 data-i18n="sidebar_accounts">Comptes & Livrets</h3>
                     <div id="accountsList" class="accounts-list">
@@ -302,7 +316,17 @@
                     <button class="btn btn-secondary" style="border-radius: 6px; font-size: 12px; padding: 6px 12px;" onclick="window.FormView.hideNewCatInput()">Annuler</button>
                 </div>
 
+                <!-- Enveloppe projet (hidden if no project budgets exist) -->
+                <div id="op_budget_container" style="display:none;">
+                    <label class="input-label" style="display:block; font-size:12px; font-weight: 600; margin-bottom:6px; color: var(--text-color);">🗂️ Enveloppe projet</label>
+                    <select id="op_budget_id" class="inline-input" style="width:100%; border-radius:8px; padding:8px; font-size:13px;">
+                        <option value="">-- Aucune enveloppe --</option>
+                    </select>
+                    <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">Assigne cette dépense à un budget de type projet pour en suivre le cumul.</p>
+                </div>
+
                 <hr style="border: none; border-top: 1px solid var(--border-color); margin: 0;">
+
 
                 <!-- 5. Dates & Rapprochement -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
