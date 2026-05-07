@@ -124,6 +124,18 @@
                         <div id="valOverdraftExplanation" style="font-size: 10px; color: var(--text-muted); margin-top: 8px; line-height: 1.2; border-top: 1px dashed rgba(255, 86, 48, 0.3); padding-top: 6px;">
                         </div>
                     </div>
+                    
+                    <div class="stat-box" id="sidebarBudgetBox" style="display: none; border-color: rgba(16, 185, 129, 0.4); background-color: rgba(16, 185, 129, 0.05); cursor: pointer;" onclick="document.querySelector('[data-view=\\'budgets\\']').click()">
+                        <span class="stat-label" style="color: #10b981; font-weight: 600;">🎯 Budgets (Mensuel)</span>
+                        <div style="position:relative;background:rgba(128,128,128,0.15);border-radius:999px;height:6px;overflow:hidden;margin:8px 0;border:1px solid rgba(255,255,255,0.05);">
+                            <div id="sidebarBudgetTotalBar" style="position:absolute;top:0;left:0;width:0%;height:100%;background:rgba(128,128,128,0.4);border-radius:999px;transition:width 0.3s;"></div>
+                            <div id="sidebarBudgetBar" style="position:absolute;top:0;left:0;width:0%;height:100%;background:#10b981;border-radius:999px;transition:width 0.3s;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                            <span id="sidebarBudgetSpent" style="color: var(--text-main); font-weight: 600;">0,00 €</span>
+                            <span id="sidebarBudgetTarget" style="color: var(--text-muted);">/ 0,00 €</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div style="margin-top: auto; padding: 15px; border-radius: 8px; background-color: var(--bg-body); border: 1px solid var(--border-color);">
@@ -248,7 +260,7 @@
     </div>
 
     <!-- Unified Operation Modal -->
-    <div id="operationModal" class="modal-overlay" style="display: none; backdrop-filter: blur(5px);">
+    <div id="operationModal" class="modal-overlay" style="display: none;">
         <div class="modal" style="width: 600px; max-width: 95vw; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); padding: 30px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
                 <h3 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">Saisie d'opération</h3>

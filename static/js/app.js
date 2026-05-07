@@ -159,6 +159,44 @@ class App {
                 document.getElementById('overridePayAmount').value = stats.next_pay_amount;
             }
             
+            // Budget Summary
+            if (stats.budget_summary && stats.budget_summary.target > 0) {
+                const box = document.getElementById('sidebarBudgetBox');
+                const spent = document.getElementById('sidebarBudgetSpent');
+                const target = document.getElementById('sidebarBudgetTarget');
+                const bar = document.getElementById('sidebarBudgetBar');
+                const totalBar = document.getElementById('sidebarBudgetTotalBar');
+                
+                const totalSpent = stats.budget_summary.spent || 0;
+                const recSpent = stats.budget_summary.reconciled_spent || 0;
+                
+                const totalPct = Math.min((totalSpent / stats.budget_summary.target) * 100, 100);
+                const recPct = Math.min((recSpent / stats.budget_summary.target) * 100, 100);
+                
+                const over = recSpent > stats.budget_summary.target;
+                const color = over ? '#ff5630' : recPct >= 80 ? '#f59e0b' : '#10b981';
+                
+                box.style.display = 'block';
+                box.style.borderColor = color + '66';
+                box.style.backgroundColor = color + '1a';
+                
+                box.querySelector('.stat-label').style.color = color;
+                
+                spent.textContent = formatCurrency(recSpent);
+                spent.style.color = color;
+                target.textContent = "/ " + formatCurrency(stats.budget_summary.target);
+                
+                bar.style.width = recPct + '%';
+                bar.style.backgroundColor = color;
+                
+                if (totalBar) {
+                    totalBar.style.width = totalPct + '%';
+                }
+            } else {
+                const box = document.getElementById('sidebarBudgetBox');
+                if (box) box.style.display = 'none';
+            }
+            
             // Load base pay day config
             const configs = window.app.config || await API.get('/api/config/');
             

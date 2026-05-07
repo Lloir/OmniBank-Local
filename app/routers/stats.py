@@ -60,6 +60,13 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
     if warning and next_pay_date:
         if warning["date"] > next_pay_date:
             warning = None
+            
+    # Calculate global budget summary
+    from app.routers.budgets import get_budget_status
+    budget_data = get_budget_status(today.year, today.month, db)
+    total_budgeted = sum(b["budget_amount"] for b in budget_data["budgets"])
+    total_spent = sum(b["expenses"] for b in budget_data["budgets"])
+    reconciled_spent = sum(b["reconciled_expenses"] for b in budget_data["budgets"])
     
     return {
         "net_worth": net_worth,
@@ -69,7 +76,12 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
         "is_pay_override": is_pay_override,
         "pay_history": pay_history,
         "overdraft_warning": warning,
-        "unreconciled_expenses": unreconciled_expenses
+        "unreconciled_expenses": unreconciled_expenses,
+        "budget_summary": {
+            "target": total_budgeted,
+            "spent": total_spent,
+            "reconciled_spent": reconciled_spent
+        }
     }
 
 from pydantic import BaseModel

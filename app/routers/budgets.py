@@ -122,14 +122,20 @@ def get_budget_status(year: int = None, month: int = None, db: Session = Depends
 
         expenses = 0.0
         income = 0.0
+        reconciled_expenses = 0.0
+        reconciled_income = 0.0
 
         if b.is_project:
             txs = db.query(Transaction).filter(Transaction.budget_id == b.id).all()
             for tx in txs:
                 if tx.type == "Recettes":
                     income += abs(tx.amount)
+                    if tx.reconciliation_date:
+                        reconciled_income += abs(tx.amount)
                 else:
                     expenses += abs(tx.amount)
+                    if tx.reconciliation_date:
+                        reconciled_expenses += abs(tx.amount)
         elif b.period == "indefinite":
             txs_all = db.query(Transaction).filter(
                 Transaction.type.in_(["Dépenses fixes", "Dépenses variables", "Recettes"]),
@@ -139,8 +145,12 @@ def get_budget_status(year: int = None, month: int = None, db: Session = Depends
                     continue
                 if tx.type == "Recettes":
                     income += abs(tx.amount)
+                    if tx.reconciliation_date:
+                        reconciled_income += abs(tx.amount)
                 else:
                     expenses += abs(tx.amount)
+                    if tx.reconciliation_date:
+                        reconciled_expenses += abs(tx.amount)
         else:
             txs = db.query(Transaction).filter(
                 extract('year', Transaction.date_operation) == y,
@@ -152,12 +162,20 @@ def get_budget_status(year: int = None, month: int = None, db: Session = Depends
                     continue
                 if tx.type == "Recettes":
                     income += abs(tx.amount)
+                    if tx.reconciliation_date:
+                        reconciled_income += abs(tx.amount)
                 else:
                     expenses += abs(tx.amount)
+                    if tx.reconciliation_date:
+                        reconciled_expenses += abs(tx.amount)
 
         expenses = round(expenses, 2)
         income = round(income, 2)
         spent = round(expenses - income, 2)  # net: can be negative if income > expenses
+        
+        reconciled_expenses = round(reconciled_expenses, 2)
+        reconciled_income = round(reconciled_income, 2)
+        reconciled_spent = round(reconciled_expenses - reconciled_income, 2)
 
         budget_amount = (
             b.monthly_amount if b.period == "monthly"
@@ -165,6 +183,7 @@ def get_budget_status(year: int = None, month: int = None, db: Session = Depends
             else b.monthly_amount
         )
         pct = round((max(spent, 0) / budget_amount * 100) if budget_amount > 0 else 0, 1)
+        reconciled_pct = round((max(reconciled_spent, 0) / budget_amount * 100) if budget_amount > 0 else 0, 1)
 
         result.append({
             "id": b.id,
@@ -174,11 +193,14 @@ def get_budget_status(year: int = None, month: int = None, db: Session = Depends
             "is_closed": b.is_closed,
             "budget_amount": budget_amount,
             "expenses": expenses,
+            "reconciled_expenses": reconciled_expenses,
             "income": income,
             "spent": max(spent, 0),    # display: never negative
+            "reconciled_spent": max(reconciled_spent, 0),
             "net": spent,              # raw net value
             "remaining": round(budget_amount - spent, 2),
             "percent": pct,
+            "reconciled_percent": reconciled_pct,
             "period": b.period,
         })
 
@@ -229,6 +251,7 @@ def get_budget_transactions(budget_id: int, year: int = None, month: int = None,
         "type": tx.type,
         "category": tx.category,
         "is_income": tx.type == "Recettes",
+        "is_reconciled": tx.reconciliation_date is not None,
     } for tx in txs]
 
 
@@ -273,13 +296,24 @@ def ai_suggest_budgets(db: Session = Depends(get_db)):
 
     # Build averages
     averages = {cat: round(sum(vals) / len(vals), 2) for cat, vals in monthly_totals.items()}
-    avg_lines = "\n".join(f"- {cat}: {amt:.2f}€/mois" % () if False else f"- {cat}: {amt:.2f}€/mois" for cat, amt in sorted(averages.items(), key=lambda x: -x[1]))
+    avg_lines = "\n".join(f"- {cat}: {amt:.2f}€/mois" for cat, amt in sorted(averages.items(), key=lambda x: -x[1]))
 
-    prompt = f"""Tu es un conseiller financier. Voici les dépenses moyennes mensuelles de l'utilisateur sur les 3 derniers mois, par catégorie :
+    # Get existing budgets to prevent duplicates
+    existing_budgets = db.query(Budget).filter(Budget.is_closed == False).all()
+    existing_info = []
+    for b in existing_budgets:
+        cats = [c.category_name for c in db.query(BudgetCategory).filter(BudgetCategory.budget_id == b.id).all()]
+        cat_str = ", ".join(cats) if cats else "Toutes dépenses"
+        existing_info.append(f"- {b.name} (Catégories: {cat_str})")
+    
+    existing_lines = "\n".join(existing_info)
+    existing_prompt = f"\nVoici les enveloppes DÉJÀ EXISTANTES de l'utilisateur. NE PROPOSE PAS de nouvelles enveloppes pour ces catégories :\n{existing_lines}\n" if existing_info else ""
+
+    prompt = f"""Tu es un conseiller financier expert. Voici les dépenses moyennes mensuelles de l'utilisateur sur les 3 derniers mois, par catégorie :
 
 {avg_lines}
-
-Propose des enveloppes budgétaires logiques. Regroupe les catégories similaires si pertinent.
+{existing_prompt}
+Propose de NOUVELLES enveloppes budgétaires logiques (au maximum 3 ou 4) pour les dépenses qui ne sont pas encore couvertes par les enveloppes existantes. Regroupe les catégories similaires si pertinent.
 Pour chaque enveloppe, réponds UNIQUEMENT en JSON valide, un objet par ligne, avec ce format exact :
 {{"name": "Nom de l'enveloppe", "categories": ["Cat1", "Cat2"], "suggested_amount": 250.00, "reason": "Explication courte"}}
 
