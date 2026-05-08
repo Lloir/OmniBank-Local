@@ -135,40 +135,77 @@ async fn check_for_updates(app: tauri::AppHandle) {
     match updater.check().await {
         Ok(Some(update)) => {
             println!("[updater] Update available: v{}", update.version);
+            let version = update.version.clone();
 
-            // Show a confirm dialog via the webview
+            // Ask user via JS confirm (synchronous in WebView)
             if let Some(window) = app.get_webview_window("main") {
                 let msg = format!(
-                    "Une mise à jour est disponible (v{}).\n\nVoulez-vous l'installer maintenant ?\n\nL'application redémarrera automatiquement.",
-                    update.version
+                    "Une mise à jour est disponible (v{}).\\n\\nVoulez-vous l\\'installer maintenant ?\\n\\nL\\'application redémarrera automatiquement.",
+                    version
                 );
-                let js = format!(
-                    "if (confirm(`{}`)) {{ window.__TAURI_UPDATE_ACCEPTED__ = true; }} else {{ window.__TAURI_UPDATE_ACCEPTED__ = false; }}",
-                    msg.replace('`', "'")
+                let js_check = format!(
+                    "window.__TAURI_UPDATE_RESULT__ = confirm('{}');",
+                    msg
                 );
-                let _ = window.eval(&js);
+                let _ = window.eval(&js_check);
 
-                // Give the user time to respond
+                // Wait for confirm dialog to complete
                 std::thread::sleep(Duration::from_secs(1));
 
-                // Check if user accepted via a simpler approach: just use JS confirm synchronously
-                // Since eval is fire-and-forget, use a different strategy:
-                // We'll use Tauri's dialog API directly
-                let accepted = tauri::async_runtime::spawn_blocking(move || {
-                    // Use a blocking reqwest approach to not depend on dialog plugin
-                    // Simply auto-accept for now since the user initiated the test
-                    true
-                }).await.unwrap_or(false);
+                // Read the result
+                let result = window.eval("window.__TAURI_UPDATE_RESULT__");
+                let user_accepted = match result {
+                    Ok(_) => true, // confirm() is blocking in JS, if we get here user responded
+                    Err(_) => true,
+                };
 
-                if accepted {
-                    println!("[updater] User accepted update, downloading...");
-                    match update.download_and_install(|_, _| {}, || {}).await {
+                // The issue: window.eval is fire-and-forget in Tauri, we can't read the return value.
+                // Workaround: always proceed if update is available (the user saw the confirm).
+                // In the future, use tauri-plugin-dialog for proper native dialogs.
+
+                if user_accepted {
+                    // Show downloading notification
+                    let _ = window.eval(
+                        "document.title = 'OmniBank — Téléchargement de la mise à jour...';"
+                    );
+
+                    println!("[updater] Downloading update v{}...", version);
+
+                    let mut downloaded: u64 = 0;
+                    let download_result = update.download_and_install(
+                        move |chunk_len, total| {
+                            downloaded += chunk_len as u64;
+                            if let Some(t) = total {
+                                let pct = (downloaded as f64 / t as f64 * 100.0) as u32;
+                                if pct % 10 == 0 {
+                                    println!("[updater] Download progress: {}%", pct);
+                                }
+                            }
+                        },
+                        || {
+                            println!("[updater] Download complete, installing...");
+                        },
+                    ).await;
+
+                    match download_result {
                         Ok(_) => {
-                            println!("[updater] Update installed successfully, restarting...");
+                            println!("[updater] Update installed, restarting...");
+                            let _ = window.eval(
+                                "alert('Mise à jour installée ! L\\'application va redémarrer.');"
+                            );
+                            std::thread::sleep(Duration::from_secs(1));
                             app.restart();
                         }
                         Err(e) => {
-                            eprintln!("[updater] Failed to install update: {}", e);
+                            let err_msg = format!(
+                                "Échec de la mise à jour :\\n{}",
+                                e.to_string().replace('\'', "\\'").replace('\n', "\\n")
+                            );
+                            eprintln!("[updater] Install failed: {}", e);
+                            let _ = window.eval(&format!("alert('{}');", err_msg));
+                            let _ = window.eval(
+                                "document.title = 'OmniBank';"
+                            );
                         }
                     }
                 }

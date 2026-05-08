@@ -18,6 +18,13 @@ class App {
             this.config = {};
         }
         
+        // Display app version in header
+        try {
+            const vData = await API.get('/api/version');
+            const badge = document.getElementById('appVersionBadge');
+            if (badge && vData.version) badge.textContent = `v${vData.version}`;
+        } catch (e) { /* silent */ }
+        
         // Theme toggle
         const savedTheme = localStorage.getItem('omni_theme');
         if (savedTheme === 'dark') {

@@ -69,6 +69,22 @@ def health_check():
     return {"status": "ok"}
 
 
+@app.get("/api/version")
+def get_version():
+    """Return the app version from package.json."""
+    import json
+    try:
+        pkg_path = resource_path("package.json")
+        if not os.path.exists(pkg_path):
+            # Fallback: try parent dir in dev mode
+            pkg_path = os.path.join(os.path.abspath('.'), "package.json")
+        with open(pkg_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return {"version": data.get("version", "?")}
+    except Exception:
+        return {"version": "?"}
+
+
 @app.post("/api/upload")
 async def upload_file(file: UploadFile = File(...)):
     file_location = os.path.join(uploads_dir, file.filename)

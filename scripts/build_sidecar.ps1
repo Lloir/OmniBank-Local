@@ -27,6 +27,7 @@ if (-not $SkipBuild) {
         --name $ExeName.Replace(".exe", "") `
         --add-data "static;static" `
         --add-data "app;app" `
+        --add-data "package.json;." `
         --hidden-import "uvicorn" `
         --hidden-import "uvicorn.config" `
         --hidden-import "uvicorn.main" `
