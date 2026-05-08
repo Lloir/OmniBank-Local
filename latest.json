@@ -1,11 +1,11 @@
 {
-  "version": "1.0.2",
-  "notes": "v1.0.2 — Version badge dans le header, fenêtre plus grande, correction de l'updater automatique.",
-  "pub_date": "2026-05-08T06:34:00Z",
+  "version": "1.0.3",
+  "notes": "v1.0.3 — Badge de version visible dans le header, correction du badge invisible en mode light.",
+  "pub_date": "2026-05-08T06:47:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "untrusted comment: signature from rsign secret key\nRUSFl9PIDcXFFQ2uGw1kO2G+Gx+zTNrDXHv9Z4/wVC1TMH722Z4A7YEM1DKT0YrT6wRhE2GRuKCGLY/hAWEx0pTL4c2mWea9MAk=\ntrusted comment: timestamp:1778222086\tfile:src-tauri\\target\\release\\bundle\\msi\\OmniBank_1.0.2_x64_fr-FR.msi\tprehashed\nf2sHxW9EPbXMbIytnGPj8u4VqCLeiMZhqQms8++v4MCjbGOiLFMcNsNTDWbXHdzdRDEIu4glcf/gJc+kGL8hBA==",
-      "url": "https://github.com/Aschefr/OmniBank-Local/releases/download/v1.0.2/OmniBank_1.0.2_x64_fr-FR.msi"
+      "signature": "untrusted comment: signature from rsign secret key\nRUSFl9PIDcXFFW5/DmqedAPsIAbIAtKrMRMn7fVlBcURHcDG1CijSXtpUbEXdvSLmhMfeFwgNS6HjmXnfvXR0drZiJvhd4ZP2Q4=\ntrusted comment: timestamp:1778222870\tfile:src-tauri\\target\\release\\bundle\\msi\\OmniBank_1.0.3_x64_fr-FR.msi\tprehashed\nnr/hvo1KLJ3jbT+R6QLXdECNatA157yaW+IrN6m3S2nkEEmMh4poKYVc9f7g1+dSZOSTb9P9miIrdVTUIu8nAA==",
+      "url": "https://github.com/Aschefr/OmniBank-Local/releases/download/v1.0.3/OmniBank_1.0.3_x64_fr-FR.msi"
     }
   }
 }
