@@ -317,7 +317,8 @@ gh release create vX.Y.Z `
 4. Dès que le sidecar répond → window.show()
 5. 3 secondes après → check_for_updates()
    └── Vérifie latest.json sur GitHub
-   └── Si mise à jour disponible → download + install + restart
+   └── Si mise à jour disponible → confirm() JS → download + install + restart
+   └── Les erreurs sont affichées via alert() JS (pas eprintln, invisible en GUI)
 6. L'utilisateur interagit avec l'app via la WebView
 7. Fermeture → RunEvent::Exit → kill_sidecar()
    ├── child.kill() (API Tauri)
@@ -349,6 +350,8 @@ else:
 |-----------|--------|------|
 | `app.windows[0].visible` | `false` | Fenêtre cachée au démarrage (affichée après health check) |
 | `app.windows[0].url` | `http://127.0.0.1:8434` | Pointe vers le sidecar FastAPI |
+| `app.windows[0].width` | `1600` | Largeur par défaut (augmentée pour éviter le retour à la ligne des noms de pages) |
+| `app.windows[0].height` | `900` | Hauteur par défaut |
 | `bundle.externalBin` | `["bin/omnibank-api"]` | Déclare le sidecar à inclure |
 | `bundle.targets` | `["msi"]` | Format d'installateur Windows |
 | `bundle.windows.wix.language` | `"fr-FR"` | Installateur en français |
@@ -443,6 +446,45 @@ pas vérifier les nouvelles signatures.
 
 **Solution** : Les utilisateurs devront réinstaller manuellement le nouveau MSI.
 **Prévention** : Ne JAMAIS perdre la clé privée `src-tauri/.tauri-private-key`.
+
+### 10. Badge de version invisible dans le header
+
+**Cause** : Le badge utilisait des couleurs hardcodées (`rgba(255,255,255,...)`).
+En thème **light**, le header est blanc → le texte blanc est invisible.
+
+**Solution** : Utiliser les variables CSS du thème :
+```html
+<!-- ✅ Correct -->
+color: var(--text-muted); background: var(--bg-base); border: 1px solid var(--border-color);
+
+<!-- ❌ Incorrect -->
+color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.1);
+```
+
+**Règle** : Ne JAMAIS utiliser de couleurs hardcodées dans le HTML inline.
+Toujours utiliser les `var(--...)` du design system pour supporter light/dark.
+
+### 11. L'updater télécharge mais rien ne se passe (aucune erreur visible)
+
+**Cause** : Les erreurs de `download_and_install()` étaient envoyées dans
+`eprintln!()` — invisible dans une app GUI avec `#[windows_subsystem = "windows"]`.
+
+**Solution** : Afficher les erreurs dans le navigateur via `window.eval("alert(...)")` :
+```rust
+Err(e) => {
+    let _ = window.eval(&format!("alert('{}');", e));
+}
+```
+
+### 12. `tokio::time::sleep` ne compile pas dans Tauri
+
+**Cause** : La crate `tokio` n'est pas directement importable dans un projet
+Tauri (elle est ré-exportée via `tauri::async_runtime`). `tokio::time::sleep`
+et `tokio::time::Duration` ne sont pas disponibles.
+
+**Solution** : Utiliser `std::thread::sleep(Duration::from_secs(N))` à la place.
+Dans le contexte de l'updater (spawned async task), bloquer le thread est acceptable
+car c'est une tâche en arrière-plan.
 
 ---
 
