@@ -1,11 +1,11 @@
 {
-  "version": "1.0.1",
-  "notes": "Mise à jour v1.0.1 — Amélioration du système de mises à jour automatiques et correction du nettoyage du processus sidecar.",
-  "pub_date": "2026-05-08T06:14:00Z",
+  "version": "1.0.2",
+  "notes": "Mise à jour v1.0.2 — Test du système de mise à jour automatique.",
+  "pub_date": "2026-05-08T06:19:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "untrusted comment: signature from rsign secret key\nRUSFl9PIDcXFFa7p50GcVc8E40e1fFkxK765cR+n4ENbRIhN5iX75HKeRWFP2Sx8ju5VnRZK0fuIQ7XzicNiBkKWt3g3y8BGeAs=\ntrusted comment: timestamp:1778220805\tfile:src-tauri\\target\\release\\bundle\\msi\\OmniBank_1.0.1_x64_fr-FR.msi\tprehashed\neQSZr+Y/Iw6JvemEtOlgoevRp0V6t4rJlrsmDGHCUzJ++rtcVqqccU9lHG/0izN4zhTkwVlWmHUB3PFzWShICg==",
-      "url": "https://github.com/Aschefr/OmniBank-Local/releases/download/v1.0.1/OmniBank_1.0.1_x64_fr-FR.msi"
+      "signature": "untrusted comment: signature from rsign secret key\nRUSFl9PIDcXFFdcxiXiCklUOgT9R5ICUtP6NYAxTxgFTEgU6opnWy2YL5TzVIfVWjI/8IKi/OYmfz2uGtNS1/1rAnZmvx6ZC/QE=\ntrusted comment: timestamp:1778221171\tfile:src-tauri\\target\\release\\bundle\\msi\\OmniBank_1.0.2_x64_fr-FR.msi\tprehashed\nwbqTS8Q460TxrdCJyNW+ov742tvLVzxYhAkQtrV3qml0xr4+eQ1VcnQoEdDhtoqX2YK2XXuROYtPh8PchzLSAw==",
+      "url": "https://github.com/Aschefr/OmniBank-Local/releases/download/v1.0.2/OmniBank_1.0.2_x64_fr-FR.msi"
     }
   }
 }
