@@ -1,11 +1,11 @@
 {
-  "version": "1.0.0",
-  "notes": "Version initiale d'OmniBank Desktop.",
-  "pub_date": "2026-05-07T00:00:00Z",
+  "version": "1.0.1",
+  "notes": "Mise à jour v1.0.1 — Amélioration du système de mises à jour automatiques et correction du nettoyage du processus sidecar.",
+  "pub_date": "2026-05-08T06:14:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "",
-      "url": "https://github.com/Aschefr/OmniBank-Local/releases/download/v1.0.0/OmniBank_1.0.0_x64_fr-FR.msi"
+      "signature": "untrusted comment: signature from rsign secret key\nRUSFl9PIDcXFFa7p50GcVc8E40e1fFkxK765cR+n4ENbRIhN5iX75HKeRWFP2Sx8ju5VnRZK0fuIQ7XzicNiBkKWt3g3y8BGeAs=\ntrusted comment: timestamp:1778220805\tfile:src-tauri\\target\\release\\bundle\\msi\\OmniBank_1.0.1_x64_fr-FR.msi\tprehashed\neQSZr+Y/Iw6JvemEtOlgoevRp0V6t4rJlrsmDGHCUzJ++rtcVqqccU9lHG/0izN4zhTkwVlWmHUB3PFzWShICg==",
+      "url": "https://github.com/Aschefr/OmniBank-Local/releases/download/v1.0.1/OmniBank_1.0.1_x64_fr-FR.msi"
     }
   }
 }
